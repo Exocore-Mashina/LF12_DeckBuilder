@@ -1,0 +1,78 @@
+# =========================
+
+# Allgemein
+
+# =========================
+
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# =========================
+
+# VS Code
+
+# =========================
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# =========================
+
+# Visual Studio
+
+# =========================
+
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# =========================
+
+# ASP.NET Core / .NET
+
+# =========================
+
+**/bin/
+**/obj/
+**/out/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.deps.json
+*.runtimeconfig.json
+
+# =========================
+
+# ASP.NET Secrets & Config
+
+# =========================
+
+appsettings.Development.json
+secrets.json
+
+# =========================
+
+# Frontend (optional)
+
+# =========================
+
+node_modules/
+dist/
+build/
+
+# =========================
+
+# HTTP test files
+
+# =========================
+
+*.http
