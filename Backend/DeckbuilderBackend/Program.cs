@@ -1,4 +1,4 @@
-using Deckbuilder_Backend.Data;
+using DeckbuilderBackend.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

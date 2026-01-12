@@ -49,6 +49,7 @@ Thumbs.db
 *.cache
 *.deps.json
 *.runtimeconfig.json
+*.db
 
 # =========================
 
