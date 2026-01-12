@@ -9,6 +9,9 @@
 *.temp
 .DS_Store
 Thumbs.db
+'Backend/Deckbuilder Backend/deckbuilder.db'
+*.db
+
 
 # =========================
 
