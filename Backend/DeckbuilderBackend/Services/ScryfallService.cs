@@ -1,86 +1,55 @@
-﻿using System.Net.Http.Json;
+﻿using System;
+using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using DeckbuilderBackend.Models.DTOs;
 
-public static class ScryfallService
+namespace DeckbuilderBackend.Services
 {
-    private static readonly HttpClient _httpClient = new HttpClient
+    public class ScryfallService
     {
-        BaseAddress = new Uri("https://api.scryfall.com/")
-    };
+        private readonly HttpClient _http;
 
-    static ScryfallService()
-    {
-        _httpClient.DefaultRequestHeaders.Clear();
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "MyDeckBuilderApp/1.0 (example@example.com)");
-        _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-    }
-
-    public static async Task<List<Card>> GetCardsAsync(
-        string? name = null,
-        string? color = null,
-        string? typeLine = null,
-        string? rarity = null,
-        string? cmc = null,
-        string? power = null,
-        string? toughness = null,
-        int limit = 50)
-    {
-        var queryParts = new List<string>();
-
-        if (!string.IsNullOrWhiteSpace(name))
-            queryParts.Add($"name:{name}");
-
-        if (!string.IsNullOrWhiteSpace(color))
+        public ScryfallService(HttpClient http)
         {
-            // Normalize color parameter for Scryfall: remove commas and use c: prefix
-            var c = color.Replace(",", "").Trim();
-            if (!string.IsNullOrEmpty(c))
-                queryParts.Add($"c:{c.ToLowerInvariant()}");
+            _http = http;
+            _http.BaseAddress = new Uri("https://api.scryfall.com/");
+            _http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "DeckBuilder/1.0");
+            _http.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/json");
         }
 
-        if (!string.IsNullOrWhiteSpace(typeLine))
-            queryParts.Add($"type:{typeLine}");
-
-        if (!string.IsNullOrWhiteSpace(rarity))
-            queryParts.Add($"rarity:{rarity}");
-
-        string BuildComparisonPart(string keyword, string? value)
+        public async Task<ScryfallSearchResultDto> SearchAsync(
+            string? name,
+            string? color,
+            string? typeLine,
+            string? rarity,
+            string? cmc,
+            string? power,
+            string? toughness,
+            int page = 1,
+            int pageSize = 50)
         {
-            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
-            var v = value.Trim();
-            // If value starts with comparison operator, use it directly (e.g. ">=3")
-            if (System.Text.RegularExpressions.Regex.IsMatch(v, "^([<>]=?|!=)\\s*-?\\d+\\.?\\d*$"))
-                return keyword + v;
-            // else assume equality
-            return keyword + "=" + v;
-        }
+            var query = BuildQuery(name, color, typeLine, rarity, cmc, power, toughness);
 
-        if (!string.IsNullOrWhiteSpace(cmc))
-            queryParts.Add(BuildComparisonPart("mv", cmc));
+            // Scryfall braucht eine nicht-leere Query
+            if (string.IsNullOrWhiteSpace(query))
+                throw new ArgumentException("Mindestens ein Suchfilter muss gesetzt sein (z.B. name).");
 
-        if (!string.IsNullOrWhiteSpace(power))
-            queryParts.Add(BuildComparisonPart("pow", power));
+            if (page < 1)
+                throw new ArgumentOutOfRangeException(nameof(page), "Page muss >= 1 sein.");
 
-        if (!string.IsNullOrWhiteSpace(toughness))
-            queryParts.Add(BuildComparisonPart("tou", toughness));
+            if (pageSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(pageSize), "PageSize muss >= 1 sein.");
 
-        string query = string.Join("%20", queryParts.Select(q => Uri.EscapeDataString(q)));
-        string url = $"cards/search?q={query}&unique=cards&order=name";
-        Console.WriteLine("URL: "+ url);
+            var url = $"cards/search?q={Uri.EscapeDataString(query)}&unique=cards&order=name&page={page}";
 
-        // Scryfall URL constructed
-
-        var cards = new List<Card>();
-        int fetched = 0;
-
-        while (!string.IsNullOrEmpty(url) && (limit <= 0 || fetched < limit))
-        {
-            var response = await _httpClient.GetAsync(url);
+            using var response = await _http.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                break;
+                var body = await response.Content.ReadAsStringAsync();
+                // Kurze, hilfreiche Fehlermeldung für Debug/Schule
+                throw new HttpRequestException($"Scryfall Fehler {(int)response.StatusCode}: {response.ReasonPhrase}. URL: {url}. Antwort: {body}");
             }
 
             var json = await response.Content.ReadAsStringAsync();
@@ -88,36 +57,153 @@ public static class ScryfallService
 
             if (!doc.RootElement.TryGetProperty("data", out var data))
             {
-                break;
-            }
-
-            foreach (var item in data.EnumerateArray())
-            {
-                if (limit > 0 && fetched >= limit) break;
-
-                var card = new Card
+                return new ScryfallSearchResultDto
                 {
-                    Name = item.GetProperty("name").GetString() ?? "",
-                    CardText = item.TryGetProperty("oracle_text", out var textProp) ? textProp.GetString() ?? "" : "",
-                    Color = item.TryGetProperty("colors", out var colorProp) && colorProp.ValueKind == JsonValueKind.Array
-                        ? string.Join(",", colorProp.EnumerateArray().Select(c => c.GetString()))
-                        : "",
-                    CMC = item.TryGetProperty("cmc", out var cmcProp) ? cmcProp.GetDouble() : 0,
-                    Power = item.TryGetProperty("power", out var powerProp) ? powerProp.GetString() ?? "" : "",
-                    Toughness = item.TryGetProperty("toughness", out var toughProp) ? toughProp.GetString() ?? "" : "",
-                    TypeLine = item.TryGetProperty("type_line", out var typeProp) ? typeProp.GetString() ?? "" : "",
-                    Rarity = item.TryGetProperty("rarity", out var rarityProp) ? rarityProp.GetString() ?? "" : "",
-                    ScryfallURI = item.TryGetProperty("scryfall_uri", out var uriProp) ? uriProp.GetString() ?? "" : ""
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCards = 0,
+                    HasMore = false,
+                    Cards = Array.Empty<ScryfallCardDto>()
                 };
-
-                cards.Add(card);
-                fetched++;
             }
 
-            url = doc.RootElement.TryGetProperty("next_page", out var nextProp) ? nextProp.GetString() : null;
+            var cards = data.EnumerateArray()
+                .Select(MapCard)
+                .Take(pageSize)
+                .ToList();
+
+            var totalCards = doc.RootElement.TryGetProperty("total_cards", out var totalProp)
+                ? totalProp.GetInt32()
+                : cards.Count;
+
+            var hasMore = doc.RootElement.TryGetProperty("has_more", out var hasMoreProp)
+                && hasMoreProp.GetBoolean();
+
+            var nextPage = doc.RootElement.TryGetProperty("next_page", out var nextProp)
+                ? nextProp.GetString()
+                : null;
+
+            return new ScryfallSearchResultDto
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCards = totalCards,
+                HasMore = hasMore,
+                NextPage = nextPage,
+                Cards = cards
+            };
         }
 
-        // returning fetched cards
-        return cards;
+        public async Task<ScryfallCardDto> GetCardByIdAsync(string scryfallId)
+        {
+            if (string.IsNullOrWhiteSpace(scryfallId))
+                throw new ArgumentException("ScryfallId darf nicht leer sein.", nameof(scryfallId));
+
+            var url = $"cards/{Uri.EscapeDataString(scryfallId)}";
+
+            using var response = await _http.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Scryfall Fehler {(int)response.StatusCode}: {response.ReasonPhrase}. URL: {url}. Antwort: {body}");
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+
+            return MapCard(doc.RootElement);
+        }
+
+        private static ScryfallCardDto MapCard(JsonElement item)
+        {
+            return new ScryfallCardDto
+            {
+                Id = item.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "",
+                Name = item.GetProperty("name").GetString() ?? "",
+                OracleText = item.TryGetProperty("oracle_text", out var t) ? t.GetString() ?? "" : "",
+                Color = item.TryGetProperty("colors", out var c) && c.ValueKind == JsonValueKind.Array
+                    ? string.Join(",", c.EnumerateArray().Select(x => x.GetString()))
+                    : "",
+                Cmc = item.TryGetProperty("cmc", out var cmcProp) ? cmcProp.GetDouble() : 0,
+                Power = item.TryGetProperty("power", out var p) ? p.GetString() ?? "" : "",
+                Toughness = item.TryGetProperty("toughness", out var tou) ? tou.GetString() ?? "" : "",
+                TypeLine = item.TryGetProperty("type_line", out var typeProp) ? typeProp.GetString() ?? "" : "",
+                Rarity = item.TryGetProperty("rarity", out var rarProp) ? rarProp.GetString() ?? "" : "",
+                ScryfallUri = item.TryGetProperty("scryfall_uri", out var uriProp) ? uriProp.GetString() ?? "" : ""
+            };
+        }
+
+        private static string BuildQuery(
+            string? name,
+            string? color,
+            string? typeLine,
+            string? rarity,
+            string? cmc,
+            string? power,
+            string? toughness)
+        {
+            var parts = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(name))
+                parts.Add($"name:{name}");
+
+            if (!string.IsNullOrWhiteSpace(color))
+            {
+                var c = NormalizeColor(color);
+                if (!string.IsNullOrEmpty(c))
+                    parts.Add($"c:{c}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(typeLine))
+                parts.Add($"type:{typeLine}");
+
+            if (!string.IsNullOrWhiteSpace(rarity))
+                parts.Add($"rarity:{rarity}");
+
+            if (!string.IsNullOrWhiteSpace(cmc))
+            {
+                var cmp = NormalizeComparison("mv", cmc);
+                if (!string.IsNullOrEmpty(cmp)) parts.Add(cmp);
+            }
+
+            if (!string.IsNullOrWhiteSpace(power))
+            {
+                var cmp = NormalizeComparison("pow", power);
+                if (!string.IsNullOrEmpty(cmp)) parts.Add(cmp);
+            }
+
+            if (!string.IsNullOrWhiteSpace(toughness))
+            {
+                var cmp = NormalizeComparison("tou", toughness);
+                if (!string.IsNullOrEmpty(cmp)) parts.Add(cmp);
+            }
+
+            return string.Join(" ", parts);
+        }
+
+        private static string NormalizeColor(string color)
+        {
+            // erlaubt "R,U" oder "ru" -> "ru"
+            var cleaned = Regex.Replace(color, @"[^wubrgcWUBRGC]", "");
+            return cleaned.ToLowerInvariant();
+        }
+
+        private static string NormalizeComparison(string keyword, string value)
+        {
+            var v = value.Trim().Replace(" ", "");
+
+            // erlaubt >=3, <=2, !=1, >5, <4, =3 oder 3
+            if (Regex.IsMatch(v, @"^([<>]=?|!=|=)?-?\d+(\.\d+)?$"))
+            {
+                if (char.IsDigit(v[0]) || v[0] == '-') // "3" oder "-1"
+                    return $"{keyword}={v}";
+
+                return $"{keyword}{v}"; // ">=3" -> "mv>=3"
+            }
+
+            // ungültiger Vergleich -> ignorieren statt kaputte Query bauen
+            return "";
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DeckbuilderBackend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace DeckbuilderBackend.Data;
 
