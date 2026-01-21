@@ -41,7 +41,7 @@ namespace DeckbuilderBackend.Services
             if (pageSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(pageSize), "PageSize muss >= 1 sein.");
 
-            var url = $"cards/search?q={Uri.EscapeDataString(query)}&unique=cards&order=name&page={page}";
+            var url = $"cards/search?q={Uri.EscapeDataString(query)}&unique=cards&order=name&page={page}&page_size={pageSize}";
 
             using var response = await _http.GetAsync(url);
 
