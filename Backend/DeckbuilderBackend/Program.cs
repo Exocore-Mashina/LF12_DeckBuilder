@@ -1,28 +1,35 @@
 using DeckbuilderBackend.Data;
+using DeckbuilderBackend.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controller
 builder.Services.AddControllers();
 
-// ---- CORS hinzuf�gen (Entwicklung: erlaubt alle Origins) ----
+// CORS (Frontend-Zugriff erlauben)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        // Für Entwicklung: erlaubt alle Origins, Header und Methoden.
-        // In Produktion bitte auf konkrete Origins einschränken.
         policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
-// ---- DbContext konfigurieren ----
+// Datenbank
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
+// Services
+builder.Services.AddHttpClient<ScryfallService>();
+builder.Services.AddScoped<CardService>();
+builder.Services.AddScoped<DeckService>();
+
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -31,7 +38,6 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// ---- CORS Middleware einbinden ----
 app.UseCors("AllowFrontend");
 
 app.MapControllers();
