@@ -21,28 +21,6 @@ const DecksView = ({
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-4">
-        <label className="text-sm font-medium text-slate-300" htmlFor="deckViewSelect">
-          Deck auswählen
-        </label>
-        <select
-          id="deckViewSelect"
-          value={selectedDeckId}
-          onChange={(event) => onDeckChange(event.target.value)}
-          className="rounded-full border border-emerald-400/60 bg-slate-950 px-4 py-2 text-sm text-slate-100"
-        >
-          <option value="">Deck auswählen</option>
-          {decks.map((deck) => (
-            <option key={deck.id} value={deck.id}>
-              {deck.name} ({deck.cardCount} Karten)
-            </option>
-          ))}
-        </select>
-        <span className="text-sm text-slate-400">
-          Bitte wähle ein Deck aus, um die Karten zu sehen.
-        </span>
-      </div>
-
       <form
         className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"
         onSubmit={onDeckCreate}
@@ -87,6 +65,28 @@ const DecksView = ({
           Deck erstellen
         </button>
       </form>
+
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-4">
+        <label className="text-sm font-medium text-slate-300" htmlFor="deckViewSelect">
+          Deck auswählen
+        </label>
+        <select
+          id="deckViewSelect"
+          value={selectedDeckId}
+          onChange={(event) => onDeckChange(event.target.value)}
+          className="rounded-full border border-emerald-400/60 bg-slate-950 px-4 py-2 text-sm text-slate-100"
+        >
+          <option value="">Deck auswählen</option>
+          {decks.map((deck) => (
+            <option key={deck.id} value={deck.id}>
+              {deck.name} ({deck.cardCount} Karten)
+            </option>
+          ))}
+        </select>
+        <span className="text-sm text-slate-400">
+          Bitte wähle ein Deck aus, um die Karten zu sehen.
+        </span>
+      </div>
 
       <DeckSummary summary={deckSummary} />
 

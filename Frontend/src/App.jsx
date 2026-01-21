@@ -19,11 +19,15 @@ const App = () => {
   const [activeTab, setActiveTab] = useState("cards");
   const [isLoading, setIsLoading] = useState(false);
   const [cards, setCards] = useState([]);
+  const [allCards, setAllCards] = useState([]);
   const [deckCards, setDeckCards] = useState([]);
   const [deckSummary, setDeckSummary] = useState(null);
   const [decks, setDecks] = useState([]);
   const [selectedDeckId, setSelectedDeckId] = useState("");
   const [selectedDeckViewId, setSelectedDeckViewId] = useState("");
+  const [cardsPage, setCardsPage] = useState(1);
+  const [cardsPageSize, setCardsPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [cardsTotalCount, setCardsTotalCount] = useState(0);
   const [deckPage, setDeckPage] = useState(1);
   const [deckPageSize, setDeckPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [deckTotalCount, setDeckTotalCount] = useState(0);
@@ -79,16 +83,16 @@ const App = () => {
       const response = await fetchWithTimeout(url);
       if (!response.ok) {
         console.error("Fehler beim Laden der Karten:", response.status);
-        setCards([]);
+        setAllCards([]);
         return;
       }
 
       const result = await response.json();
-      const nextCards = (result.cards || []).slice(0, 40);
-      setCards(nextCards);
+      setAllCards(result.cards || []);
+      setCardsPage(1);
     } catch (error) {
       console.error("Netzwerkfehler beim Laden der Karten:", error);
-      setCards([]);
+      setAllCards([]);
     } finally {
       setIsLoading(false);
     }
@@ -264,6 +268,19 @@ const App = () => {
     selectedDeckViewId
   ]);
 
+  useEffect(() => {
+    const total = allCards.length;
+    const totalPages = Math.max(1, Math.ceil(total / cardsPageSize));
+    const safePage = Math.min(cardsPage, totalPages);
+    if (safePage !== cardsPage) {
+      setCardsPage(safePage);
+      return;
+    }
+    const start = (safePage - 1) * cardsPageSize;
+    setCardsTotalCount(total);
+    setCards(allCards.slice(start, start + cardsPageSize));
+  }, [allCards, cardsPage, cardsPageSize]);
+
   return (
     <div className="min-h-screen pb-12">
       <TopBar
@@ -286,7 +303,28 @@ const App = () => {
       ) : null}
 
       {activeTab === "cards" ? (
-        <CardsView cards={cards} onAddCard={addCardToDeck} />
+        <CardsView
+          cards={cards}
+          onAddCard={addCardToDeck}
+          pagination={{
+            isVisible: cardsTotalCount > 0,
+            page: cardsPage,
+            totalCount: cardsTotalCount,
+            pageSize: cardsPageSize,
+            onPrev: () => setCardsPage((prev) => Math.max(prev - 1, 1)),
+            onNext: () => {
+              const totalPages = Math.max(
+                1,
+                Math.ceil(cardsTotalCount / cardsPageSize)
+              );
+              setCardsPage((prev) => Math.min(prev + 1, totalPages));
+            },
+            onPageSizeChange: (value) => {
+              setCardsPageSize(value);
+              setCardsPage(1);
+            }
+          }}
+        />
       ) : (
         <DecksView
           decks={decks}

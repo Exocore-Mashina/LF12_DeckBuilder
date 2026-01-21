@@ -1,6 +1,7 @@
 import CardGrid from "./CardGrid.jsx";
+import CardsPagination from "./CardsPagination.jsx";
 
-const CardsView = ({ cards, onAddCard }) => {
+const CardsView = ({ cards, onAddCard, pagination }) => {
   return (
     <section className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
       <div>
@@ -15,6 +16,7 @@ const CardsView = ({ cards, onAddCard }) => {
         onAdd={onAddCard}
         emptyState="Starte eine Suche, um Karten zu sehen."
       />
+      <CardsPagination {...pagination} />
     </section>
   );
 };
