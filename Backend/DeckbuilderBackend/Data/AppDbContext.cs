@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Deckbuilder_Backend.Models;
 
-namespace Deckbuilder_Backend.Data;
+namespace DeckbuilderBackend.Data;
 
 public class AppDbContext : DbContext
 {
@@ -11,4 +10,6 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<Card> Cards => Set<Card>();
+    public DbSet<DeckCard> DeckCards => Set<DeckCard>();
+    public DbSet<Deck> Decks => Set<Deck>();
 }

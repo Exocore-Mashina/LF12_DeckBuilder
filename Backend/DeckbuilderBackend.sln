@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Deckbuilder Backend", "Deckbuilder Backend\Deckbuilder Backend.csproj", "{C5BB0275-CFF4-4BDA-84B6-A11873B82A7A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeckbuilderBackend", "DeckbuilderBackend\DeckbuilderBackend.csproj", "{C5BB0275-CFF4-4BDA-84B6-A11873B82A7A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
