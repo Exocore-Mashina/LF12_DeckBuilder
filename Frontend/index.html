@@ -7,45 +7,98 @@
   </head>
   <body>
     <header class="topbar">
-      <h1>Magic Deckbuilder</h1>
-      <button id="CardPage" class="toggleButton">Karten</button>
-      <button id="DeckPage" class="toggleButton">Decks</button>
-      <input type="text" id="searchInput" placeholder="Search cards..." />
+      <div class="brand">
+        <h1>Magic Deckbuilder</h1>
+        <span class="subtitle">Baue, analysiere und verwalte deine Decks</span>
+      </div>
+      <nav class="tabs">
+        <button id="CardPage" class="toggleButton active">Karten</button>
+        <button id="DeckPage" class="toggleButton">Decks</button>
+      </nav>
+      <div class="search-area" id="searchArea">
+        <input type="text" id="searchInput" placeholder="Search cards..." />
+      </div>
     </header>
 
-    <section class="filters">
-      <label for="colorFilter">Farbe</label>
-      <input id="colorFilter" name="colorFilter" type="text" placeholder="z.B. R,U (kommasepariert; gültige Buchstaben: W U B R G C)"></input>
+    <section class="filters" id="cardFilters">
+      <div class="filter-group">
+        <label for="colorFilter">Farbe</label>
+        <input id="colorFilter" name="colorFilter" type="text" placeholder="z.B. R,U (kommasepariert; gültige Buchstaben: W U B R G C)" />
+      </div>
 
-      <label for="cmcFilter">CMC</label>
-      <input id="cmcFilter" name="cmcFilter" type="number" placeholder="muss noch schauen"></input>
-      
-      <label for="powerFilter">Stärke</label>
-      <input id="powerFilter" name="powerFilter" type="text" placeholder="muss noch schauen"></input>
-      
-      <label for="toughnessFilter">Verteidigung</label>
-      <input id="toughnessFilter" name="toughnessFilter" type="text" placeholder="muss noch schauen"></input>
+      <div class="filter-group">
+        <label for="cmcFilter">CMC</label>
+        <input id="cmcFilter" name="cmcFilter" type="text" placeholder=">=3" />
+      </div>
 
-      <label for="rarityFilter">Seltenheit</label>
-      <select id="rarityFilter" name="rarityFilter">
-        <option value="">All Rarities</option>
-        <option value="Common">Common</option>
-        <option value="Uncommon">Uncommon</option>
-        <option value="Rare">Rare</option>
-        <option value="Mythic">Mythic</option>
-      </select>
+      <div class="filter-group">
+        <label for="powerFilter">Stärke</label>
+        <input id="powerFilter" name="powerFilter" type="text" placeholder=">=2" />
+      </div>
 
-      <label for="typeFilter">Typ</label>
-      <select id="typeFilter" name="typeFilter">
-        <option value="">All Types</option>
-        <option value="Creature">Creature</option>
-        <option value="Spell">Spell</option>
-      </select>
+      <div class="filter-group">
+        <label for="toughnessFilter">Verteidigung</label>
+        <input id="toughnessFilter" name="toughnessFilter" type="text" placeholder=">=2" />
+      </div>
+
+      <div class="filter-group">
+        <label for="rarityFilter">Seltenheit</label>
+        <select id="rarityFilter" name="rarityFilter">
+          <option value="">All Rarities</option>
+          <option value="Common">Common</option>
+          <option value="Uncommon">Uncommon</option>
+          <option value="Rare">Rare</option>
+          <option value="Mythic">Mythic</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="typeFilter">Typ</label>
+        <select id="typeFilter" name="typeFilter">
+          <option value="">All Types</option>
+          <option value="Creature">Creature</option>
+          <option value="Spell">Spell</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="deckSelect">Deck auswählen</label>
+        <select id="deckSelect" name="deckSelect"></select>
+      </div>
 
       <button id="searchBtn">Suchen</button>
     </section>
 
-    <main id="cardGrid" class="grid"></main>
+    <main id="cardsView" class="view active">
+      <div class="section-header">
+        <h2>Card Search</h2>
+        <p>Suche Karten und füge sie deinem Deck hinzu.</p>
+      </div>
+      <div id="cardGrid" class="grid"></div>
+      <div id="cardEmptyState" class="empty-state">Starte eine Suche, um Karten zu sehen.</div>
+    </main>
+
+    <main id="decksView" class="view">
+      <div class="section-header">
+        <h2>Decks</h2>
+        <p>Wähle ein Deck aus und analysiere dessen Aufbau.</p>
+      </div>
+
+      <div class="deck-controls">
+        <label for="deckViewSelect">Deck auswählen</label>
+        <select id="deckViewSelect" name="deckViewSelect"></select>
+      </div>
+
+      <section id="deckSummary" class="deck-summary"></section>
+
+      <div id="deckGrid" class="grid"></div>
+      <div id="deckEmptyState" class="empty-state">Wähle ein Deck aus, um Karten zu sehen.</div>
+    </main>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <span>Lädt...</span>
+    </div>
 
     <script src="app.js"></script>
   </body>

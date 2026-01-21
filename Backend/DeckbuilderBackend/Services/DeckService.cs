@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using DeckbuilderBackend.Data;
 using DeckbuilderBackend.Models;
@@ -94,6 +95,91 @@ namespace DeckbuilderBackend.Services
                 PageSize = pageSize,
                 TotalCount = totalCount,
                 Items = items
+            };
+        }
+
+        /// <summary>
+        /// Gibt eine Zusammenfassung eines Decks zurück.
+        /// </summary>
+        public async Task<DeckSummaryDto?> GetDeckSummaryAsync(int deckId)
+        {
+            var deck = await _context.Decks
+                .Include(d => d.DeckCards)
+                .ThenInclude(dc => dc.Card)
+                .FirstOrDefaultAsync(d => d.Id == deckId);
+
+            if (deck == null)
+                return null;
+
+            var totalCards = deck.DeckCards.Sum(dc => dc.Quantity);
+            var totalCmc = deck.DeckCards.Sum(dc => dc.Card.CMC * dc.Quantity);
+
+            var colors = new Dictionary<string, int>();
+            var types = new Dictionary<string, int>();
+            var rarities = new Dictionary<string, int>();
+
+            foreach (var deckCard in deck.DeckCards)
+            {
+                var card = deckCard.Card;
+                var quantity = deckCard.Quantity;
+
+                var colorTokens = string.IsNullOrWhiteSpace(card.Color)
+                    ? new[] { "C" }
+                    : card.Color.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                foreach (var color in colorTokens)
+                {
+                    if (!colors.ContainsKey(color))
+                        colors[color] = 0;
+                    colors[color] += quantity;
+                }
+
+                var typeLine = card.TypeLine ?? string.Empty;
+                var typeLabels = new[]
+                {
+                    "Creature",
+                    "Instant",
+                    "Sorcery",
+                    "Artifact",
+                    "Enchantment",
+                    "Planeswalker",
+                    "Land"
+                };
+
+                var matchedAny = false;
+                foreach (var type in typeLabels)
+                {
+                    if (typeLine.Contains(type, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedAny = true;
+                        if (!types.ContainsKey(type))
+                            types[type] = 0;
+                        types[type] += quantity;
+                    }
+                }
+
+                if (!matchedAny)
+                {
+                    if (!types.ContainsKey("Other"))
+                        types["Other"] = 0;
+                    types["Other"] += quantity;
+                }
+
+                var rarity = string.IsNullOrWhiteSpace(card.Rarity) ? "Unknown" : card.Rarity;
+                if (!rarities.ContainsKey(rarity))
+                    rarities[rarity] = 0;
+                rarities[rarity] += quantity;
+            }
+
+            return new DeckSummaryDto
+            {
+                DeckId = deck.Id,
+                Name = deck.Name,
+                TotalCards = totalCards,
+                AverageCmc = totalCards == 0 ? 0 : totalCmc / totalCards,
+                Colors = colors,
+                Types = types,
+                Rarities = rarities
             };
         }
     }

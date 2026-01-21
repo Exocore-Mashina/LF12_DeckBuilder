@@ -97,5 +97,42 @@ namespace DeckbuilderBackend.Services
             await _context.SaveChangesAsync();
             return deckCard;
         }
+
+        /// <summary>
+        /// Entfernt eine Karte aus einem Deck (reduziert Quantity oder löscht Eintrag).
+        /// </summary>
+        public async Task<DeckCard?> RemoveCardFromDeckAsync(int deckId, string scryfallId, int quantity)
+        {
+            if (quantity <= 0)
+                throw new ArgumentException("Quantity muss > 0 sein.", nameof(quantity));
+
+            if (string.IsNullOrWhiteSpace(scryfallId))
+                throw new ArgumentException("ScryfallId darf nicht leer sein.", nameof(scryfallId));
+
+            var deckExists = await _context.Decks.AnyAsync(d => d.Id == deckId);
+            if (!deckExists)
+                throw new InvalidOperationException($"Deck mit ID {deckId} existiert nicht.");
+
+            var card = await _context.Cards.FirstOrDefaultAsync(c => c.ScryfallId == scryfallId);
+            if (card == null)
+                throw new InvalidOperationException("Karte ist nicht in der Datenbank vorhanden.");
+
+            var deckCard = await _context.DeckCards
+                .FirstOrDefaultAsync(dc => dc.DeckId == deckId && dc.CardId == card.Id);
+
+            if (deckCard == null)
+                throw new InvalidOperationException("Karte ist nicht im Deck vorhanden.");
+
+            if (deckCard.Quantity <= quantity)
+            {
+                _context.DeckCards.Remove(deckCard);
+                await _context.SaveChangesAsync();
+                return null;
+            }
+
+            deckCard.Quantity -= quantity;
+            await _context.SaveChangesAsync();
+            return deckCard;
+        }
     }
 }
