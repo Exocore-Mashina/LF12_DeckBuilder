@@ -1,4 +1,5 @@
 using DeckbuilderBackend.Data;
+using DeckbuilderBackend.Models.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,7 +28,7 @@ public class DecksController : ControllerBase
 
     // POST: api/decks/create
     [HttpPost("create")]
-    public async Task<IActionResult> NewDeck([FromBody] CreateDeckRequest request)
+    public async Task<IActionResult> NewDeck([FromBody] DeckDTO request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest("Deckname darf nicht leer sein.");
@@ -70,11 +71,5 @@ public class DecksController : ControllerBase
         });
 
         return Ok(cards);
-    }
-
-    public class CreateDeckRequest
-    {
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
     }
 }

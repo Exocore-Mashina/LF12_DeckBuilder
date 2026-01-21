@@ -20,6 +20,9 @@ public static class ScryfallService
         string? color = null,
         string? typeLine = null,
         string? rarity = null,
+        string? cmc = null,
+        string? power = null,
+        string? toughness = null,
         int limit = 50)
     {
         var queryParts = new List<string>();
@@ -28,7 +31,12 @@ public static class ScryfallService
             queryParts.Add($"name:{name}");
 
         if (!string.IsNullOrWhiteSpace(color))
-            queryParts.Add($"color:{color.ToUpperInvariant()}");
+        {
+            // Normalize color parameter for Scryfall: remove commas and use c: prefix
+            var c = color.Replace(",", "").Trim();
+            if (!string.IsNullOrEmpty(c))
+                queryParts.Add($"c:{c.ToLowerInvariant()}");
+        }
 
         if (!string.IsNullOrWhiteSpace(typeLine))
             queryParts.Add($"type:{typeLine}");
@@ -36,24 +44,42 @@ public static class ScryfallService
         if (!string.IsNullOrWhiteSpace(rarity))
             queryParts.Add($"rarity:{rarity}");
 
+        string BuildComparisonPart(string keyword, string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+            var v = value.Trim();
+            // If value starts with comparison operator, use it directly (e.g. ">=3")
+            if (System.Text.RegularExpressions.Regex.IsMatch(v, "^([<>]=?|!=)\\s*-?\\d+\\.?\\d*$"))
+                return keyword + v;
+            // else assume equality
+            return keyword + "=" + v;
+        }
+
+        if (!string.IsNullOrWhiteSpace(cmc))
+            queryParts.Add(BuildComparisonPart("mv", cmc));
+
+        if (!string.IsNullOrWhiteSpace(power))
+            queryParts.Add(BuildComparisonPart("pow", power));
+
+        if (!string.IsNullOrWhiteSpace(toughness))
+            queryParts.Add(BuildComparisonPart("tou", toughness));
+
         string query = string.Join("%20", queryParts.Select(q => Uri.EscapeDataString(q)));
         string url = $"cards/search?q={query}&unique=cards&order=name";
+        Console.WriteLine("URL: "+ url);
 
-        Console.WriteLine("[DEBUG] Scryfall URL: " + new Uri(_httpClient.BaseAddress!, url));
+        // Scryfall URL constructed
 
         var cards = new List<Card>();
         int fetched = 0;
 
-        while (!string.IsNullOrEmpty(url) && fetched < limit)
+        while (!string.IsNullOrEmpty(url) && (limit <= 0 || fetched < limit))
         {
             var response = await _httpClient.GetAsync(url);
-            Console.WriteLine("[DEBUG] HTTP Status: " + response.StatusCode);
 
             if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine("[DEBUG] Fehler beim Abrufen der Karten!");
                 var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine("[DEBUG] Scryfall Error: " + errorContent);
                 break;
             }
 
@@ -62,13 +88,12 @@ public static class ScryfallService
 
             if (!doc.RootElement.TryGetProperty("data", out var data))
             {
-                Console.WriteLine("[DEBUG] Keine 'data' im JSON!");
                 break;
             }
 
             foreach (var item in data.EnumerateArray())
             {
-                if (fetched >= limit) break;
+                if (limit > 0 && fetched >= limit) break;
 
                 var card = new Card
                 {
@@ -90,11 +115,9 @@ public static class ScryfallService
             }
 
             url = doc.RootElement.TryGetProperty("next_page", out var nextProp) ? nextProp.GetString() : null;
-            if (!string.IsNullOrEmpty(url))
-                Console.WriteLine("[DEBUG] Nächste Seite: " + url);
         }
 
-        Console.WriteLine("[DEBUG] Insgesamt gefundene Karten: " + cards.Count);
+        // returning fetched cards
         return cards;
     }
 }
