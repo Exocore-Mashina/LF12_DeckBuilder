@@ -1,106 +1,150 @@
-let currentDecks = [];
-let selectedDeckId = null;
-let searchTimeout = null;
+const BASE_URL = "http://localhost:5020/api/cards"; // ggf. anpassen
+let currentPage = 1;
+let isLoading = false;
 
-// Backend Basis-URL
-const BASE_URL = 'http://localhost:5020'; // <-- hier Backend-URL prüfen
+// Elemente
+const grid = document.getElementById("cardGrid");
+const searchInput = document.getElementById("searchInput");
+const colorFilter = document.getElementById("colorFilter");
+const typeFilter = document.getElementById("typeFilter");
+const rarityFilter = document.getElementById("rarityFilter");
+const cmcFilter = document.getElementById("cmcFilter");
+const powerFilter = document.getElementById("powerFilter");
+const toughnessFilter = document.getElementById("toughnessFilter");
+const searchBtn = document.getElementById("searchBtn");
 
-// ----------------- Deck erstellen -----------------
-document.getElementById('create-deck-btn').addEventListener('click', async () => {
-  const name = document.getElementById('deck-name').value.trim();
-  if (!name) return alert("Bitte einen Decknamen eingeben.");
+// Karten laden
+async function loadCards() {
+    const params = new URLSearchParams();
 
-  try {
-    const res = await fetch(`${BASE_URL}/decks`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name})
-    });
-    if (!res.ok) throw new Error("Fehler beim Erstellen des Decks");
+    const normalizeColor = (raw) => {
+        if (!raw) return "";
+        // Accept only color letters w,u,b,r,g,c (case-insensitive). Extract letters and return unique comma-separated uppercase list.
+        const clean = raw.replace(/[\s;|\/]+/g, ",");
+        const matches = clean.match(/[wubrgc]/gi);
+        if (!matches) return "";
+        const letters = Array.from(new Set(matches.map(m => m.toUpperCase())));
+        return letters.join(",");
+    };
 
-    const deck = await res.json();
-    currentDecks.push(deck);
-    updateDeckSelect();
-    document.getElementById('deck-message').textContent = `Deck "${deck.name}" erstellt!`;
-    document.getElementById('deck-name').value = '';
-  } catch (err) {
-    console.error(err);
-    alert("Fehler beim Erstellen des Decks.");
-  }
-});
+    const colorValue = normalizeColor(colorFilter.value);
 
-// Select Menü aktualisieren
-function updateDeckSelect() {
-  const select = document.getElementById('deck-select');
-  select.innerHTML = '';
-  currentDecks.forEach(deck => {
-    const option = document.createElement('option');
-    option.value = deck.id;
-    option.textContent = deck.name;
-    select.appendChild(option);
-  });
-  if (currentDecks.length > 0) selectedDeckId = currentDecks[0].id;
-  select.onchange = () => selectedDeckId = select.value;
-}
+    if (searchInput.value) params.append("name", searchInput.value);
+    if (colorValue) params.append("color", colorValue);
+    if (typeFilter.value) params.append("typeLine", typeFilter.value);
+    if (rarityFilter.value) params.append("rarity", rarityFilter.value);
+    if (cmcFilter && cmcFilter.value) params.append("cmc", cmcFilter.value);
+    if (powerFilter && powerFilter.value) params.append("power", powerFilter.value);
+    if (toughnessFilter && toughnessFilter.value) params.append("toughness", toughnessFilter.value);
 
-// ----------------- Karte zum Deck hinzufügen -----------------
-async function addCardToDeck(cardId) {
-  if (!selectedDeckId) return alert("Bitte zuerst ein Deck auswählen.");
-  try {
-    const res = await fetch(`${BASE_URL}/decks/${selectedDeckId}/cards`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({cardId})
-    });
-    if (!res.ok) throw new Error("Fehler beim Hinzufügen der Karte");
+    const url = `${BASE_URL}?${params.toString()}`;
+    if (isLoading) return; // prevent concurrent requests
+    isLoading = true;
+    const controller = new AbortController();
+    const timeoutMs = 10000; // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(url, { signal: controller.signal });
 
-    alert("Karte hinzugefügt!");
-  } catch (err) {
-    console.error(err);
-    alert("Fehler beim Hinzufügen der Karte.");
-  }
-}
+        if (!response.ok) {
+            const text = await response.text().catch(() => "<no body>");
+            alert("Fehler beim Laden der Karten: " + response.status);
+            return;
+        }
 
-// ----------------- Karten suchen (Live-Suche) -----------------
-async function searchCards(query) {
-  if (!query) return;
-
-  try {
-    const res = await fetch(`${BASE_URL}/cards?search=${encodeURIComponent(query)}`);
-    if (!res.ok) throw new Error("Fehler bei der Kartensuche");
-
-    const cards = await res.json();
-    const container = document.getElementById('search-results');
-    container.innerHTML = '';
-
-    if (cards.length === 0) {
-      container.textContent = "Keine Karten gefunden.";
-      return;
+        const cards = await response.json();
+        renderCards(cards);
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            alert('Die Anfrage hat zu lange gedauert und wurde abgebrochen.');
+        } else {
+            alert("Netzwerkfehler beim Laden der Karten: " + (err.message || err));
+        }
+    } finally {
+        clearTimeout(timeoutId);
+        isLoading = false;
     }
-
-    cards.forEach(card => {
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.innerHTML = `
-        <strong>${card.name}</strong><br>
-        ${card.mana_cost ? `<em>${card.mana_cost}</em>` : ''}<br>
-        <span>${card.type_line}</span><br>
-        <button onclick='addCardToDeck("${card.id}")'>Zu Deck hinzufügen</button>
-      `;
-      container.appendChild(div);
-    });
-  } catch (err) {
-    console.error(err);
-    alert("Fehler bei der Kartensuche.");
-  }
 }
 
-// Live-Suche mit Debounce (300ms)
-document.getElementById('card-search').addEventListener('input', (e) => {
-  const query = e.target.value.trim();
-  if (searchTimeout) clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => searchCards(query), 300);
+// Karten anzeigen (4x10 Grid)
+function renderCards(cards) {
+    grid.innerHTML = "";
+
+    cards.slice(0, 40).forEach(card => {
+        const cardDiv = document.createElement("div");
+        cardDiv.className = "card";
+
+            const scryUrl = card.scryfallURI || card.ScryfallURI || "";
+
+            cardDiv.innerHTML = `
+                <div class="card-name"><a href="${scryUrl}" target="_blank" rel="noopener noreferrer">${card.name}</a></div>
+                <button onclick='addCardToDeck("${card.name.replace(/\"/g, '\\\"')}")'>Hinzufügen</button>
+            `;
+
+        grid.appendChild(cardDiv);
+    });
+}
+
+// Karte zum Deck hinzufügen
+async function addCardToDeck(cardName) {
+    const url = `${BASE_URL}/add-to-deck`;
+    const body = JSON.stringify({ deckId: 1, quantity: 1, card: { name: cardName } });
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+            signal: controller.signal
+        });
+
+        if (!response.ok) {
+            alert("Fehler beim Hinzufügen der Karte: " + response.status);
+            return;
+        }
+        await response.json().catch(() => null);
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            alert('Die Anfrage zum Hinzufügen der Karte wurde abgebrochen (Timeout).');
+        } else {
+            alert("Netzwerkfehler beim Hinzufügen der Karte: " + (err.message || err));
+        }
+    }
+}
+
+// Events
+searchBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (searchBtn.disabled) return;
+    currentPage = 1;
+    try {
+        searchBtn.disabled = true;
+        await loadCards();
+    } finally {
+        searchBtn.disabled = false;
+    }
 });
 
-// ----------------- Initial Decks laden -----------------
-as
+searchInput.addEventListener("keydown", async (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        if (searchBtn.disabled) return;
+        currentPage = 1;
+        try {
+            searchBtn.disabled = true;
+            await loadCards();
+        } finally {
+            searchBtn.disabled = false;
+        }
+    }
+});
+
+// Keine automatischen Requests bei Filter-Änderung: Requests nur bei Button oder Enter
+[colorFilter, typeFilter, rarityFilter].forEach(f =>
+    f.onchange = () => {
+        currentPage = 1; // Filterwerte werden beim nächsten Such-Request berücksichtigt
+    }
+);
+
+// Hinweis: kein automatischer Initial-Load. Requests laufen nur bei Klick auf 'Suchen' oder Enter.

@@ -1,19 +1,146 @@
-body { font-family: Arial, sans-serif; margin: 20px; }
-input, button, select { margin: 5px; padding: 5px; }
-
-#search-results {
-  margin-top: 20px; 
-  display: flex; 
-  flex-wrap: wrap; 
-  gap: 10px;
+body {
+    margin: 0;
+    font-family: Inter, Arial, sans-serif;
+    background: linear-gradient(180deg, #0f1020, #161632);
+    color: #fff;
 }
 
-.card { 
-  border: 1px solid #ccc; 
-  padding: 10px; 
-  width: 200px;
-  border-radius: 5px;
-  background-color: #f9f9f9;
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    background: #0c0d1c;
+    border-bottom: 1px solid #222;
 }
 
-.card button { margin-top: 5px; cursor: pointer; }
+.topbar input {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #1f2038;
+    color: white;
+}
+
+/* ===== FILTERS ===== */
+
+.filters {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: auto auto;
+    gap: 6px 16px;
+    padding: 16px 32px;
+    align-items: start;
+}
+
+
+.filters label {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.filters input,
+.filters select {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: none;
+    background: #1f2038;
+    color: white;
+    font-size: 14px;
+}
+
+.filters button  {
+    grid-row: span 2; /* Button nimmt beide Zeilen */
+    align-self: end;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    background: #ff8a00;
+    color: black;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+
+.filters input:focus,
+.filters select:focus {
+    outline: 2px solid #ff8a00;
+}
+
+/* ===== CARD GRID ===== */
+
+.grid {
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background: #1b1d38;
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+.card img {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.card .rarity {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.card button {
+    margin-top: auto;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: #ff8a00;
+    color: black;
+    cursor: pointer;
+}
+
+/* 4 x 10 Kartenraster */
+.grid {
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 20px;
+}
+
+/* Magic Kartenformat: ca. 63 x 88 mm => Ratio ~ 0.715 */
+.card {
+    background: #1b1d38;
+    border-radius: 14px;
+    padding: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+.card img {
+    width: 100%;
+    aspect-ratio: 0.715;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+/* Button gleiche Farbe wie Suchen */
+.card button {
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    background: #ff8a00;
+    color: black;
+    font-weight: 600;
+    cursor: pointer;
+}
+
