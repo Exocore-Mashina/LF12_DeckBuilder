@@ -86,12 +86,38 @@
 
       <div class="deck-controls">
         <label for="deckViewSelect">Deck auswählen</label>
-        <select id="deckViewSelect" name="deckViewSelect"></select>
+        <select id="deckViewSelect" name="deckViewSelect" class="deck-select-highlight"></select>
+        <span class="helper-text">Bitte wähle ein Deck aus, um die Karten zu sehen.</span>
       </div>
+
+      <form id="deckCreateForm" class="deck-create">
+        <div class="deck-create-fields">
+          <div class="field">
+            <label for="deckNameInput">Neues Deck</label>
+            <input id="deckNameInput" name="deckNameInput" type="text" placeholder="z.B. Mono Red" required />
+          </div>
+          <div class="field">
+            <label for="deckDescriptionInput">Beschreibung (optional)</label>
+            <input id="deckDescriptionInput" name="deckDescriptionInput" type="text" placeholder="Kurzer Hinweis zum Deck" />
+          </div>
+        </div>
+        <button type="submit">Deck erstellen</button>
+      </form>
 
       <section id="deckSummary" class="deck-summary"></section>
 
       <div id="deckGrid" class="grid"></div>
+      <div id="deckPagination" class="pagination">
+        <button id="deckPrevPage" type="button">Zurück</button>
+        <span id="deckPageInfo">Seite 1</span>
+        <button id="deckNextPage" type="button">Weiter</button>
+        <label for="deckPageSize" class="page-size-label">Pro Seite</label>
+        <select id="deckPageSize" name="deckPageSize">
+          <option value="8">8</option>
+          <option value="12" selected>12</option>
+          <option value="16">16</option>
+        </select>
+      </div>
       <div id="deckEmptyState" class="empty-state">Wähle ein Deck aus, um Karten zu sehen.</div>
     </main>
 

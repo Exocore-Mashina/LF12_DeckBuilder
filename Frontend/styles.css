@@ -70,6 +70,10 @@ body {
     min-width: 220px;
 }
 
+.hidden {
+    display: none;
+}
+
 .filters {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -146,6 +150,62 @@ body {
     flex-direction: column;
     gap: 6px;
     max-width: 320px;
+}
+
+.deck-select-highlight {
+    border: 2px solid rgba(255, 138, 0, 0.8);
+    background: linear-gradient(120deg, rgba(255, 138, 0, 0.12), rgba(23, 26, 43, 0.4));
+}
+
+.helper-text {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.deck-create {
+    margin: 16px 32px 0;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.deck-create-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.deck-create .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.deck-create label {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.deck-create input {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none;
+    background: var(--panel-strong);
+    color: var(--text);
+}
+
+.deck-create button {
+    align-self: flex-start;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: #1a1a1a;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .deck-summary {
@@ -233,6 +293,41 @@ body {
 
 .empty-state {
     padding: 0 32px 32px;
+    color: var(--muted);
+}
+
+.pagination {
+    padding: 0 32px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.pagination button {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: none;
+    background: var(--panel-strong);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination select {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: none;
+    background: var(--panel-strong);
+    color: var(--text);
+}
+
+.page-size-label {
+    font-size: 12px;
     color: var(--muted);
 }
 

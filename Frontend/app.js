@@ -8,6 +8,9 @@ let isLoading = false;
 let decksCache = [];
 let selectedDeckId = null;
 let selectedDeckViewId = null;
+let deckPage = 1;
+let deckPageSize = 12;
+let deckTotalCount = 0;
 
 const grid = document.getElementById("cardGrid");
 const deckGrid = document.getElementById("deckGrid");
@@ -23,12 +26,22 @@ const cardPageButton = document.getElementById("CardPage");
 const deckPageButton = document.getElementById("DeckPage");
 const cardsView = document.getElementById("cardsView");
 const decksView = document.getElementById("decksView");
+const searchArea = document.getElementById("searchArea");
+const cardFilters = document.getElementById("cardFilters");
 const deckSelect = document.getElementById("deckSelect");
 const deckViewSelect = document.getElementById("deckViewSelect");
 const deckSummary = document.getElementById("deckSummary");
 const loadingOverlay = document.getElementById("loadingOverlay");
 const cardEmptyState = document.getElementById("cardEmptyState");
 const deckEmptyState = document.getElementById("deckEmptyState");
+const deckCreateForm = document.getElementById("deckCreateForm");
+const deckNameInput = document.getElementById("deckNameInput");
+const deckDescriptionInput = document.getElementById("deckDescriptionInput");
+const deckPagination = document.getElementById("deckPagination");
+const deckPrevPage = document.getElementById("deckPrevPage");
+const deckNextPage = document.getElementById("deckNextPage");
+const deckPageInfo = document.getElementById("deckPageInfo");
+const deckPageSizeSelect = document.getElementById("deckPageSize");
 
 const normalizeColor = (raw) => {
     if (!raw) return "";
@@ -127,17 +140,10 @@ const renderCards = (cards, mode) => {
         const scryfallId = card.scryfallId || card.id || "";
         const imageUrl = getCardImageUrl(scryfallId);
         const name = card.name || "Unbekannte Karte";
-        const scryUrl = card.scryfallUri || card.scryfallURI || "";
-        const typeLine = card.typeLine || "";
-        const rarity = card.rarity || "";
-        const cmc = card.cmc !== undefined ? `CMC ${card.cmc}` : "";
         const quantity = card.quantity ? `x${card.quantity}` : "";
 
         cardDiv.innerHTML = `
             <img src="${imageUrl}" alt="${name}" loading="lazy" />
-            <div class="card-name"><a href="${scryUrl}" target="_blank" rel="noopener noreferrer">${name}</a></div>
-            <div class="card-meta">${typeLine}</div>
-            <div class="card-meta">${rarity} ${cmc}</div>
             ${quantity ? `<div class="quantity">${quantity}</div>` : ""}
         `;
 
@@ -232,12 +238,14 @@ async function loadCards() {
 
 async function loadDeckCards(deckId) {
     if (!deckId) {
+        deckTotalCount = 0;
         renderCards([], "deck");
         renderDeckSummary(null);
+        updateDeckPagination();
         return;
     }
 
-    const url = `${DECKS_URL}/${deckId}/cards?page=1&pageSize=50`;
+    const url = `${DECKS_URL}/${deckId}/cards?page=${deckPage}&pageSize=${deckPageSize}`;
 
     try {
         setLoading(true);
@@ -248,10 +256,14 @@ async function loadDeckCards(deckId) {
             return;
         }
         const result = await response.json();
+        deckTotalCount = result.totalCount ?? 0;
+        deckPage = result.page ?? deckPage;
         renderCards(result.items || [], "deck");
+        updateDeckPagination();
     } catch (error) {
         console.error("Deck-Karten konnten nicht geladen werden:", error);
         renderCards([], "deck");
+        updateDeckPagination();
     } finally {
         setLoading(false);
     }
@@ -338,11 +350,15 @@ const setActiveTab = (tab) => {
         decksView.classList.remove("active");
         cardPageButton.classList.add("active");
         deckPageButton.classList.remove("active");
+        searchArea.classList.remove("hidden");
+        cardFilters.classList.remove("hidden");
     } else {
         cardsView.classList.remove("active");
         decksView.classList.add("active");
         cardPageButton.classList.remove("active");
         deckPageButton.classList.add("active");
+        searchArea.classList.add("hidden");
+        cardFilters.classList.add("hidden");
     }
 };
 
@@ -394,12 +410,91 @@ deckSelect.addEventListener("change", (event) => {
 
 deckViewSelect.addEventListener("change", async (event) => {
     selectedDeckViewId = event.target.value || null;
+    deckPage = 1;
     if (selectedDeckViewId) {
         await loadDeckCards(selectedDeckViewId);
         await loadDeckSummary(selectedDeckViewId);
     } else {
         renderCards([], "deck");
         renderDeckSummary(null);
+        updateDeckPagination();
+    }
+});
+
+const updateDeckPagination = () => {
+    if (!selectedDeckViewId) {
+        deckPagination.classList.add("hidden");
+        return;
+    }
+    const totalPages = Math.max(1, Math.ceil(deckTotalCount / deckPageSize));
+    deckPage = Math.min(deckPage, totalPages);
+    deckPageInfo.textContent = `Seite ${deckPage} von ${totalPages}`;
+    deckPrevPage.disabled = deckPage <= 1;
+    deckNextPage.disabled = deckPage >= totalPages;
+    deckPagination.classList.toggle("hidden", deckTotalCount === 0);
+};
+
+deckPrevPage.addEventListener("click", async () => {
+    if (deckPage <= 1) return;
+    deckPage -= 1;
+    if (selectedDeckViewId) {
+        await loadDeckCards(selectedDeckViewId);
+    }
+});
+
+deckNextPage.addEventListener("click", async () => {
+    const totalPages = Math.max(1, Math.ceil(deckTotalCount / deckPageSize));
+    if (deckPage >= totalPages) return;
+    deckPage += 1;
+    if (selectedDeckViewId) {
+        await loadDeckCards(selectedDeckViewId);
+    }
+});
+
+deckPageSizeSelect.addEventListener("change", async (event) => {
+    deckPageSize = Number(event.target.value) || 12;
+    deckPage = 1;
+    if (selectedDeckViewId) {
+        await loadDeckCards(selectedDeckViewId);
+    } else {
+        updateDeckPagination();
+    }
+});
+
+deckCreateForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const name = deckNameInput.value.trim();
+    const description = deckDescriptionInput.value.trim();
+    if (!name) return;
+    const body = JSON.stringify({ name, description: description || null });
+    try {
+        setLoading(true);
+        const response = await fetchWithTimeout(`${DECKS_URL}/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body
+        });
+        if (!response.ok) {
+            alert("Fehler beim Erstellen des Decks: " + response.status);
+            return;
+        }
+        const deck = await response.json().catch(() => null);
+        await loadDecks();
+        if (deck && deck.id) {
+            selectedDeckViewId = String(deck.id);
+            deckViewSelect.value = selectedDeckViewId;
+            selectedDeckId = String(deck.id);
+            deckSelect.value = selectedDeckId;
+            deckPage = 1;
+            await loadDeckCards(selectedDeckViewId);
+            await loadDeckSummary(selectedDeckViewId);
+        }
+        deckNameInput.value = "";
+        deckDescriptionInput.value = "";
+    } catch (error) {
+        alert("Deck konnte nicht erstellt werden: " + (error.message || error));
+    } finally {
+        setLoading(false);
     }
 });
 
