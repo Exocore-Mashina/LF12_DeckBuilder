@@ -21,7 +21,7 @@ namespace DeckbuilderBackend.Services
         /// Sucht Karten ausschließlich über Scryfall.
         /// Es werden KEINE Karten in der Datenbank gespeichert.
         /// </summary>
-        public Task<List<ScryfallCardDto>> SearchCardsAsync(
+        public Task<ScryfallSearchResultDto> SearchCardsAsync(
             string? name,
             string? color,
             string? typeLine,
@@ -29,44 +29,48 @@ namespace DeckbuilderBackend.Services
             string? cmc,
             string? power,
             string? toughness,
-            int limit = 50)
+            int page = 1,
+            int pageSize = 50)
         {
-            return _scryfallService.SearchAsync(name, color, typeLine, rarity, cmc, power, toughness, limit);
+            return _scryfallService.SearchAsync(name, color, typeLine, rarity, cmc, power, toughness, page, pageSize);
         }
 
         /// <summary>
         /// Fügt eine Karte einem Deck hinzu.
         /// Erst hier wird sie in der Datenbank gespeichert (falls noch nicht vorhanden).
         /// </summary>
-        public async Task<DeckCard> AddCardToDeckAsync(int deckId, ScryfallCardDto dto, int quantity)
+        public async Task<DeckCard> AddCardToDeckAsync(int deckId, string scryfallId, int quantity)
         {
             if (quantity <= 0)
                 throw new ArgumentException("Quantity muss > 0 sein.", nameof(quantity));
+
+            if (string.IsNullOrWhiteSpace(scryfallId))
+                throw new ArgumentException("ScryfallId darf nicht leer sein.", nameof(scryfallId));
 
             var deckExists = await _context.Decks.AnyAsync(d => d.Id == deckId);
             if (!deckExists)
                 throw new InvalidOperationException($"Deck mit ID {deckId} existiert nicht.");
 
-            // Mapping DTO → Entity
-            var cardEntity = new Card
-            {
-                Name = dto.Name,
-                CardText = dto.OracleText,
-                Color = dto.Color,
-                CMC = dto.Cmc,
-                Power = dto.Power,
-                Toughness = dto.Toughness,
-                TypeLine = dto.TypeLine,
-                Rarity = dto.Rarity,
-                ScryfallURI = dto.ScryfallUri
-            };
-
-            // Für Schule ok: Identifikation über Name.
-            // Besser wäre später: eindeutige Scryfall-ID speichern und damit abgleichen.
-            var existingCard = await _context.Cards.FirstOrDefaultAsync(c => c.Name == cardEntity.Name);
+            var existingCard = await _context.Cards.FirstOrDefaultAsync(c => c.ScryfallId == scryfallId);
 
             if (existingCard == null)
             {
+                var dto = await _scryfallService.GetCardByIdAsync(scryfallId);
+
+                var cardEntity = new Card
+                {
+                    Name = dto.Name,
+                    CardText = dto.OracleText,
+                    ScryfallId = dto.Id,
+                    Color = dto.Color,
+                    CMC = dto.Cmc,
+                    Power = dto.Power,
+                    Toughness = dto.Toughness,
+                    TypeLine = dto.TypeLine,
+                    Rarity = dto.Rarity,
+                    ScryfallURI = dto.ScryfallUri
+                };
+
                 _context.Cards.Add(cardEntity);
                 await _context.SaveChangesAsync();
                 existingCard = cardEntity;
