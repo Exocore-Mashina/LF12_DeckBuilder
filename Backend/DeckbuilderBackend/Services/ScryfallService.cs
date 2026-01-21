@@ -94,10 +94,32 @@ namespace DeckbuilderBackend.Services
             };
         }
 
+        public async Task<ScryfallCardDto> GetCardByIdAsync(string scryfallId)
+        {
+            if (string.IsNullOrWhiteSpace(scryfallId))
+                throw new ArgumentException("ScryfallId darf nicht leer sein.", nameof(scryfallId));
+
+            var url = $"cards/{Uri.EscapeDataString(scryfallId)}";
+
+            using var response = await _http.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Scryfall Fehler {(int)response.StatusCode}: {response.ReasonPhrase}. URL: {url}. Antwort: {body}");
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+
+            return MapCard(doc.RootElement);
+        }
+
         private static ScryfallCardDto MapCard(JsonElement item)
         {
             return new ScryfallCardDto
             {
+                Id = item.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "",
                 Name = item.GetProperty("name").GetString() ?? "",
                 OracleText = item.TryGetProperty("oracle_text", out var t) ? t.GetString() ?? "" : "",
                 Color = item.TryGetProperty("colors", out var c) && c.ValueKind == JsonValueKind.Array

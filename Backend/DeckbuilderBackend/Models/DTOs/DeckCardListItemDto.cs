@@ -10,6 +10,7 @@ namespace DeckbuilderBackend.Models.DTOs
         public string Toughness { get; set; } = "";
         public string TypeLine { get; set; } = "";
         public string Rarity { get; set; } = "";
+        public string ScryfallId { get; set; } = "";
         public string ScryfallUri { get; set; } = "";
         public int Quantity { get; set; }
     }

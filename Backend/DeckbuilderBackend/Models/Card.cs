@@ -11,6 +11,9 @@ namespace DeckbuilderBackend.Models
         public string Name { get; set; } = string.Empty;
         public string CardText { get; set; } = string.Empty;
 
+        [Required]
+        public string ScryfallId { get; set; } = string.Empty;
+
         public string Color { get; set; } = string.Empty;
         public double CMC { get; set; }
 

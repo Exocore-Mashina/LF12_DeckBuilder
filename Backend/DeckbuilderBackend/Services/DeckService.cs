@@ -32,13 +32,18 @@ namespace DeckbuilderBackend.Services
         }
 
         /// <summary>
-        /// Gibt alle Decks mit ihren Karten zurück (nur DB, keine externen Requests)
+        /// Gibt alle Decks zurück (ohne Navigationszyklen).
         /// </summary>
-        public async Task<List<Deck>> GetAllDecksAsync()
+        public async Task<List<DeckListItemDto>> GetAllDecksAsync()
         {
             return await _context.Decks
-                .Include(d => d.DeckCards)
-                    .ThenInclude(dc => dc.Card)
+                .Select(deck => new DeckListItemDto
+                {
+                    Id = deck.Id,
+                    Name = deck.Name,
+                    Description = deck.Description,
+                    CardCount = deck.DeckCards.Sum(dc => dc.Quantity)
+                })
                 .ToListAsync();
         }
 
@@ -77,6 +82,7 @@ namespace DeckbuilderBackend.Services
                     Toughness = dc.Card.Toughness,
                     TypeLine = dc.Card.TypeLine,
                     Rarity = dc.Card.Rarity,
+                    ScryfallId = dc.Card.ScryfallId,
                     ScryfallUri = dc.Card.ScryfallURI,
                     Quantity = dc.Quantity
                 })

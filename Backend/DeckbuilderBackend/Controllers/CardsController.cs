@@ -47,11 +47,11 @@ namespace DeckbuilderBackend.Controllers
         /// Fügt eine Karte einem Deck hinzu und speichert sie (falls nötig) in der DB.
         /// </summary>
         [HttpPost("add-to-deck")]
-        public async Task<IActionResult> AddCardToDeck([FromBody] CardDTO cardDto)
+        public async Task<IActionResult> AddCardToDeck([FromBody] AddCardToDeckRequestDto request)
         {
             try
             {
-                var deckCard = await _cardService.AddCardToDeckAsync(cardDto.DeckId, cardDto.Card, cardDto.Quantity);
+                var deckCard = await _cardService.AddCardToDeckAsync(request.DeckId, request.ScryfallId, request.Quantity);
                 return Ok(deckCard);
             }
             catch (InvalidOperationException ex)

@@ -2,6 +2,7 @@ namespace DeckbuilderBackend.Models.DTOs
 {
     public class ScryfallCardDto
     {
+        public string Id { get; set; } = "";
         public string Name { get; set; } = "";
         public string OracleText { get; set; } = "";
         public string Color { get; set; } = "";
