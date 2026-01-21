@@ -2,10 +2,10 @@
 
 #nullable disable
 
-namespace Deckbuilder_Backend.Migrations
+namespace DeckbuilderBackend.Migrations
 {
     /// <inheritdoc />
-    public partial class RenewMigrations : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Deckbuilder_Backend.Migrations
+namespace DeckbuilderBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
@@ -16,7 +16,7 @@ namespace Deckbuilder_Backend.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
 
-            modelBuilder.Entity("Card", b =>
+            modelBuilder.Entity("DeckbuilderBackend.Models.Card", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -45,6 +45,10 @@ namespace Deckbuilder_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ScryfallId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ScryfallURI")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -62,7 +66,7 @@ namespace Deckbuilder_Backend.Migrations
                     b.ToTable("Cards");
                 });
 
-            modelBuilder.Entity("Deck", b =>
+            modelBuilder.Entity("DeckbuilderBackend.Models.Deck", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -81,7 +85,7 @@ namespace Deckbuilder_Backend.Migrations
                     b.ToTable("Decks");
                 });
 
-            modelBuilder.Entity("DeckCard", b =>
+            modelBuilder.Entity("DeckbuilderBackend.Models.DeckCard", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -105,15 +109,15 @@ namespace Deckbuilder_Backend.Migrations
                     b.ToTable("DeckCards");
                 });
 
-            modelBuilder.Entity("DeckCard", b =>
+            modelBuilder.Entity("DeckbuilderBackend.Models.DeckCard", b =>
                 {
-                    b.HasOne("Card", "Card")
+                    b.HasOne("DeckbuilderBackend.Models.Card", "Card")
                         .WithMany()
                         .HasForeignKey("CardId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Deck", "Deck")
+                    b.HasOne("DeckbuilderBackend.Models.Deck", "Deck")
                         .WithMany("DeckCards")
                         .HasForeignKey("DeckId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -124,7 +128,7 @@ namespace Deckbuilder_Backend.Migrations
                     b.Navigation("Deck");
                 });
 
-            modelBuilder.Entity("Deck", b =>
+            modelBuilder.Entity("DeckbuilderBackend.Models.Deck", b =>
                 {
                     b.Navigation("DeckCards");
                 });

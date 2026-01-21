@@ -1,75 +1,50 @@
-using DeckbuilderBackend.Data;
 using DeckbuilderBackend.Models.DTOs;
+using DeckbuilderBackend.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
-[ApiController]
-[Route("api/decks")]
-public class DecksController : ControllerBase
+namespace DeckbuilderBackend.Controllers
 {
-    private readonly AppDbContext _context;
-
-    public DecksController(AppDbContext context)
+    [ApiController]
+    [Route("api/decks")]
+    public class DecksController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly DeckService _deckService;
 
-    // GET: api/decks
-    [HttpGet]
-    public async Task<IActionResult> GetDecks()
-    {
-        var decks = await _context.Decks
-            .Include(d => d.DeckCards)
-                .ThenInclude(dc => dc.Card)
-            .ToListAsync();
-
-        return Ok(decks);
-    }
-
-    // POST: api/decks/create
-    [HttpPost("create")]
-    public async Task<IActionResult> NewDeck([FromBody] DeckDTO request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest("Deckname darf nicht leer sein.");
-
-        Deck deck = new()
+        public DecksController(DeckService deckService)
         {
-            Name = request.Name,
-            Description = request.Description ?? string.Empty
-        };
+            _deckService = deckService;
+        }
 
-        _context.Decks.Add(deck);
-        await _context.SaveChangesAsync();
-        return Ok(deck);
-    }
-
-    // GET: api/decks/{deckId}/cards
-    [HttpGet("{deckId}/cards")]
-    public async Task<IActionResult> GetDeckCards(int deckId)
-    {
-        var deck = await _context.Decks
-            .Include(d => d.DeckCards)
-                .ThenInclude(dc => dc.Card)
-            .FirstOrDefaultAsync(d => d.Id == deckId);
-
-        if (deck == null) return NotFound();
-
-        // Optional: Nur relevante Daten zur�ckgeben
-        var cards = deck.DeckCards.Select(dc => new
+        // GET: api/decks
+        [HttpGet]
+        public async Task<IActionResult> GetDecks()
         {
-            dc.Card.Id,
-            dc.Card.Name,
-            dc.Card.Color,
-            dc.Card.CMC,
-            dc.Card.Power,
-            dc.Card.Toughness,
-            dc.Card.TypeLine,
-            dc.Card.Rarity,
-            dc.Card.ScryfallURI,
-            dc.Quantity
-        });
+            var decks = await _deckService.GetAllDecksAsync();
+            return Ok(decks);
+        }
 
-        return Ok(cards);
+        // POST: api/decks/create
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateDeck([FromBody] DeckDTO request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return BadRequest("Deckname darf nicht leer sein.");
+
+            var deck = await _deckService.CreateDeckAsync(request);
+            return Ok(deck);
+        }
+
+        // GET: api/decks/{deckId}/cards
+        [HttpGet("{deckId}/cards")]
+        public async Task<IActionResult> GetDeckCards(
+            int deckId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            var result = await _deckService.GetDeckCardsAsync(deckId, page, pageSize);
+            if (result == null) return NotFound();
+
+            return Ok(result);
+        }
     }
 }
