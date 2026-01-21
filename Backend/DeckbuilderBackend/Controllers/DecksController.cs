@@ -46,5 +46,15 @@ namespace DeckbuilderBackend.Controllers
 
             return Ok(result);
         }
+
+        // GET: api/decks/{deckId}/summary
+        [HttpGet("{deckId}/summary")]
+        public async Task<IActionResult> GetDeckSummary(int deckId)
+        {
+            var result = await _deckService.GetDeckSummaryAsync(deckId);
+            if (result == null) return NotFound();
+
+            return Ok(result);
+        }
     }
 }

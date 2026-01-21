@@ -1,9 +1,16 @@
-const BASE_URL = "http://localhost:5020/api/cards"; // ggf. anpassen
-let currentPage = 1;
-let isLoading = false;
+const API_BASE_URL = "http://localhost:5020/api";
+const CARD_SEARCH_URL = `${API_BASE_URL}/cards/search`;
+const ADD_TO_DECK_URL = `${API_BASE_URL}/cards/add-to-deck`;
+const REMOVE_FROM_DECK_URL = `${API_BASE_URL}/cards/remove-from-deck`;
+const DECKS_URL = `${API_BASE_URL}/decks`;
 
-// Elemente
+let isLoading = false;
+let decksCache = [];
+let selectedDeckId = null;
+let selectedDeckViewId = null;
+
 const grid = document.getElementById("cardGrid");
+const deckGrid = document.getElementById("deckGrid");
 const searchInput = document.getElementById("searchInput");
 const colorFilter = document.getElementById("colorFilter");
 const typeFilter = document.getElementById("typeFilter");
@@ -12,21 +19,184 @@ const cmcFilter = document.getElementById("cmcFilter");
 const powerFilter = document.getElementById("powerFilter");
 const toughnessFilter = document.getElementById("toughnessFilter");
 const searchBtn = document.getElementById("searchBtn");
+const cardPageButton = document.getElementById("CardPage");
+const deckPageButton = document.getElementById("DeckPage");
+const cardsView = document.getElementById("cardsView");
+const decksView = document.getElementById("decksView");
+const deckSelect = document.getElementById("deckSelect");
+const deckViewSelect = document.getElementById("deckViewSelect");
+const deckSummary = document.getElementById("deckSummary");
+const loadingOverlay = document.getElementById("loadingOverlay");
+const cardEmptyState = document.getElementById("cardEmptyState");
+const deckEmptyState = document.getElementById("deckEmptyState");
 
-// Karten laden
-async function loadCards() {
-    const params = new URLSearchParams();
+const normalizeColor = (raw) => {
+    if (!raw) return "";
+    const clean = raw.replace(/[\s;|\/]+/g, ",");
+    const matches = clean.match(/[wubrgc]/gi);
+    if (!matches) return "";
+    const letters = Array.from(new Set(matches.map((m) => m.toUpperCase())));
+    return letters.join(",");
+};
 
-    const normalizeColor = (raw) => {
-        if (!raw) return "";
-        // Accept only color letters w,u,b,r,g,c (case-insensitive). Extract letters and return unique comma-separated uppercase list.
-        const clean = raw.replace(/[\s;|\/]+/g, ",");
-        const matches = clean.match(/[wubrgc]/gi);
-        if (!matches) return "";
-        const letters = Array.from(new Set(matches.map(m => m.toUpperCase())));
-        return letters.join(",");
+const getCardImageUrl = (scryfallId) => {
+    if (!scryfallId) return "";
+    return `https://api.scryfall.com/cards/${scryfallId}?format=image&version=normal`;
+};
+
+const setLoading = (value) => {
+    isLoading = value;
+    loadingOverlay.classList.toggle("hidden", !value);
+};
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = 12000) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        return response;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+
+const updateDeckSelects = (decks) => {
+    const renderOptions = (selectEl, includePlaceholder) => {
+        selectEl.innerHTML = "";
+        if (includePlaceholder) {
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "Deck auswählen";
+            selectEl.appendChild(placeholder);
+        }
+        decks.forEach((deck) => {
+            const option = document.createElement("option");
+            option.value = deck.id;
+            option.textContent = `${deck.name} (${deck.cardCount} Karten)`;
+            selectEl.appendChild(option);
+        });
     };
 
+    renderOptions(deckSelect, true);
+    renderOptions(deckViewSelect, true);
+};
+
+const loadDecks = async () => {
+    try {
+        setLoading(true);
+        const response = await fetchWithTimeout(DECKS_URL);
+        if (!response.ok) {
+            console.error("Decks konnten nicht geladen werden.");
+            return;
+        }
+        const decks = await response.json();
+        decksCache = decks;
+        updateDeckSelects(decksCache);
+        if (!selectedDeckId && decksCache.length > 0) {
+            selectedDeckId = String(decksCache[0].id);
+            deckSelect.value = selectedDeckId;
+        }
+        if (!selectedDeckViewId && decksCache.length > 0) {
+            selectedDeckViewId = String(decksCache[0].id);
+            deckViewSelect.value = selectedDeckViewId;
+        }
+    } catch (error) {
+        console.error("Deck-Liste konnte nicht geladen werden:", error);
+    } finally {
+        setLoading(false);
+    }
+};
+
+const renderCards = (cards, mode) => {
+    const targetGrid = mode === "deck" ? deckGrid : grid;
+    const emptyState = mode === "deck" ? deckEmptyState : cardEmptyState;
+
+    targetGrid.innerHTML = "";
+
+    if (!cards || cards.length === 0) {
+        emptyState.style.display = "block";
+        return;
+    }
+
+    emptyState.style.display = "none";
+
+    cards.forEach((card) => {
+        const cardDiv = document.createElement("div");
+        cardDiv.className = "card";
+
+        const scryfallId = card.scryfallId || card.id || "";
+        const imageUrl = getCardImageUrl(scryfallId);
+        const name = card.name || "Unbekannte Karte";
+        const scryUrl = card.scryfallUri || card.scryfallURI || "";
+        const typeLine = card.typeLine || "";
+        const rarity = card.rarity || "";
+        const cmc = card.cmc !== undefined ? `CMC ${card.cmc}` : "";
+        const quantity = card.quantity ? `x${card.quantity}` : "";
+
+        cardDiv.innerHTML = `
+            <img src="${imageUrl}" alt="${name}" loading="lazy" />
+            <div class="card-name"><a href="${scryUrl}" target="_blank" rel="noopener noreferrer">${name}</a></div>
+            <div class="card-meta">${typeLine}</div>
+            <div class="card-meta">${rarity} ${cmc}</div>
+            ${quantity ? `<div class="quantity">${quantity}</div>` : ""}
+        `;
+
+        const actionButton = document.createElement("button");
+        if (mode === "deck") {
+            actionButton.textContent = "Entfernen";
+            actionButton.addEventListener("click", () => removeCardFromDeck(scryfallId));
+        } else {
+            actionButton.textContent = "Hinzufügen";
+            actionButton.addEventListener("click", () => addCardToDeck(scryfallId));
+        }
+        cardDiv.appendChild(actionButton);
+        targetGrid.appendChild(cardDiv);
+    });
+};
+
+const renderDeckSummary = (summary) => {
+    if (!summary) {
+        deckSummary.innerHTML = "";
+        return;
+    }
+
+    const formatMap = (map) => {
+        if (!map || Object.keys(map).length === 0) return "-";
+        return Object.entries(map)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(", ");
+    };
+
+    deckSummary.innerHTML = `
+        <div class="summary-card">
+            <h3>Deck</h3>
+            <p>${summary.name || "-"}</p>
+        </div>
+        <div class="summary-card">
+            <h3>Karten insgesamt</h3>
+            <p>${summary.totalCards ?? 0}</p>
+        </div>
+        <div class="summary-card">
+            <h3>Durchschnittliches CMC</h3>
+            <p>${summary.averageCmc?.toFixed(2) ?? "0.00"}</p>
+        </div>
+        <div class="summary-card">
+            <h3>Farben</h3>
+            <p>${formatMap(summary.colors)}</p>
+        </div>
+        <div class="summary-card">
+            <h3>Typen</h3>
+            <p>${formatMap(summary.types)}</p>
+        </div>
+        <div class="summary-card">
+            <h3>Seltenheit</h3>
+            <p>${formatMap(summary.rarities)}</p>
+        </div>
+    `;
+};
+
+async function loadCards() {
+    const params = new URLSearchParams();
     const colorValue = normalizeColor(colorFilter.value);
 
     if (searchInput.value) params.append("name", searchInput.value);
@@ -37,66 +207,88 @@ async function loadCards() {
     if (powerFilter && powerFilter.value) params.append("power", powerFilter.value);
     if (toughnessFilter && toughnessFilter.value) params.append("toughness", toughnessFilter.value);
 
-    const url = `${BASE_URL}?${params.toString()}`;
-    if (isLoading) return; // prevent concurrent requests
-    isLoading = true;
-    const controller = new AbortController();
-    const timeoutMs = 10000; // 10s timeout
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-        const response = await fetch(url, { signal: controller.signal });
+    const url = `${CARD_SEARCH_URL}?${params.toString()}`;
+    if (isLoading) return;
+    setLoading(true);
 
+    try {
+        const response = await fetchWithTimeout(url);
         if (!response.ok) {
-            const text = await response.text().catch(() => "<no body>");
-            alert("Fehler beim Laden der Karten: " + response.status);
+            console.error("Fehler beim Laden der Karten:", response.status);
+            renderCards([], "cards");
             return;
         }
 
-        const cards = await response.json();
-        renderCards(cards);
+        const result = await response.json();
+        const cards = (result.cards || []).slice(0, 40);
+        renderCards(cards, "cards");
     } catch (err) {
-        if (err.name === 'AbortError') {
-            alert('Die Anfrage hat zu lange gedauert und wurde abgebrochen.');
-        } else {
-            alert("Netzwerkfehler beim Laden der Karten: " + (err.message || err));
-        }
+        console.error("Netzwerkfehler beim Laden der Karten:", err);
+        renderCards([], "cards");
     } finally {
-        clearTimeout(timeoutId);
-        isLoading = false;
+        setLoading(false);
     }
 }
 
-// Karten anzeigen (4x10 Grid)
-function renderCards(cards) {
-    grid.innerHTML = "";
+async function loadDeckCards(deckId) {
+    if (!deckId) {
+        renderCards([], "deck");
+        renderDeckSummary(null);
+        return;
+    }
 
-    cards.slice(0, 40).forEach(card => {
-        const cardDiv = document.createElement("div");
-        cardDiv.className = "card";
+    const url = `${DECKS_URL}/${deckId}/cards?page=1&pageSize=50`;
 
-            const scryUrl = card.scryfallURI || card.ScryfallURI || "";
-
-            cardDiv.innerHTML = `
-                <div class="card-name"><a href="${scryUrl}" target="_blank" rel="noopener noreferrer">${card.name}</a></div>
-                <button onclick='addCardToDeck("${card.name.replace(/\"/g, '\\\"')}")'>Hinzufügen</button>
-            `;
-
-        grid.appendChild(cardDiv);
-    });
+    try {
+        setLoading(true);
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) {
+            console.error("Fehler beim Laden der Deck-Karten:", response.status);
+            renderCards([], "deck");
+            return;
+        }
+        const result = await response.json();
+        renderCards(result.items || [], "deck");
+    } catch (error) {
+        console.error("Deck-Karten konnten nicht geladen werden:", error);
+        renderCards([], "deck");
+    } finally {
+        setLoading(false);
+    }
 }
 
-// Karte zum Deck hinzufügen
-async function addCardToDeck(cardName) {
-    const url = `${BASE_URL}/add-to-deck`;
-    const body = JSON.stringify({ deckId: 1, quantity: 1, card: { name: cardName } });
+async function loadDeckSummary(deckId) {
+    if (!deckId) {
+        renderDeckSummary(null);
+        return;
+    }
+    const url = `${DECKS_URL}/${deckId}/summary`;
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) {
+            renderDeckSummary(null);
+            return;
+        }
+        const summary = await response.json();
+        renderDeckSummary(summary);
+    } catch (error) {
+        console.error("Deck-Zusammenfassung konnte nicht geladen werden:", error);
+        renderDeckSummary(null);
+    }
+}
+
+async function addCardToDeck(scryfallId) {
+    if (!selectedDeckId) {
+        alert("Bitte zuerst ein Deck auswählen.");
+        return;
+    }
+    const body = JSON.stringify({ deckId: Number(selectedDeckId), quantity: 1, scryfallId });
+    try {
+        setLoading(true);
+        const response = await fetchWithTimeout(ADD_TO_DECK_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body,
-            signal: controller.signal
+            body
         });
 
         if (!response.ok) {
@@ -104,20 +296,59 @@ async function addCardToDeck(cardName) {
             return;
         }
         await response.json().catch(() => null);
+        await loadDecks();
     } catch (err) {
-        if (err.name === 'AbortError') {
-            alert('Die Anfrage zum Hinzufügen der Karte wurde abgebrochen (Timeout).');
-        } else {
-            alert("Netzwerkfehler beim Hinzufügen der Karte: " + (err.message || err));
-        }
+        alert("Netzwerkfehler beim Hinzufügen der Karte: " + (err.message || err));
+    } finally {
+        setLoading(false);
     }
 }
 
-// Events
+async function removeCardFromDeck(scryfallId) {
+    if (!selectedDeckViewId) {
+        alert("Bitte zuerst ein Deck auswählen.");
+        return;
+    }
+    const body = JSON.stringify({ deckId: Number(selectedDeckViewId), quantity: 1, scryfallId });
+    try {
+        setLoading(true);
+        const response = await fetchWithTimeout(REMOVE_FROM_DECK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body
+        });
+        if (!response.ok) {
+            alert("Fehler beim Entfernen der Karte: " + response.status);
+            return;
+        }
+        await response.json().catch(() => null);
+        await loadDeckCards(selectedDeckViewId);
+        await loadDeckSummary(selectedDeckViewId);
+        await loadDecks();
+    } catch (err) {
+        alert("Netzwerkfehler beim Entfernen der Karte: " + (err.message || err));
+    } finally {
+        setLoading(false);
+    }
+}
+
+const setActiveTab = (tab) => {
+    if (tab === "cards") {
+        cardsView.classList.add("active");
+        decksView.classList.remove("active");
+        cardPageButton.classList.add("active");
+        deckPageButton.classList.remove("active");
+    } else {
+        cardsView.classList.remove("active");
+        decksView.classList.add("active");
+        cardPageButton.classList.remove("active");
+        deckPageButton.classList.add("active");
+    }
+};
+
 searchBtn.addEventListener("click", async (e) => {
     e.preventDefault();
     if (searchBtn.disabled) return;
-    currentPage = 1;
     try {
         searchBtn.disabled = true;
         await loadCards();
@@ -130,7 +361,6 @@ searchInput.addEventListener("keydown", async (e) => {
     if (e.key === "Enter") {
         e.preventDefault();
         if (searchBtn.disabled) return;
-        currentPage = 1;
         try {
             searchBtn.disabled = true;
             await loadCards();
@@ -140,11 +370,37 @@ searchInput.addEventListener("keydown", async (e) => {
     }
 });
 
-// Keine automatischen Requests bei Filter-Änderung: Requests nur bei Button oder Enter
-[colorFilter, typeFilter, rarityFilter].forEach(f =>
+[ colorFilter, typeFilter, rarityFilter, cmcFilter, powerFilter, toughnessFilter ].forEach((f) => {
     f.onchange = () => {
-        currentPage = 1; // Filterwerte werden beim nächsten Such-Request berücksichtigt
-    }
-);
+        // Werte werden beim nächsten Such-Request berücksichtigt
+    };
+});
 
-// Hinweis: kein automatischer Initial-Load. Requests laufen nur bei Klick auf 'Suchen' oder Enter.
+cardPageButton.addEventListener("click", () => {
+    setActiveTab("cards");
+});
+
+deckPageButton.addEventListener("click", async () => {
+    setActiveTab("decks");
+    if (selectedDeckViewId) {
+        await loadDeckCards(selectedDeckViewId);
+        await loadDeckSummary(selectedDeckViewId);
+    }
+});
+
+deckSelect.addEventListener("change", (event) => {
+    selectedDeckId = event.target.value || null;
+});
+
+deckViewSelect.addEventListener("change", async (event) => {
+    selectedDeckViewId = event.target.value || null;
+    if (selectedDeckViewId) {
+        await loadDeckCards(selectedDeckViewId);
+        await loadDeckSummary(selectedDeckViewId);
+    } else {
+        renderCards([], "deck");
+        renderDeckSummary(null);
+    }
+});
+
+loadDecks();

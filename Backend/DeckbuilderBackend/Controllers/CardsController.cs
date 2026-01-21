@@ -65,5 +65,26 @@ namespace DeckbuilderBackend.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        /// <summary>
+        /// Entfernt eine Karte aus einem Deck.
+        /// </summary>
+        [HttpPost("remove-from-deck")]
+        public async Task<IActionResult> RemoveCardFromDeck([FromBody] RemoveCardFromDeckRequestDto request)
+        {
+            try
+            {
+                var deckCard = await _cardService.RemoveCardFromDeckAsync(request.DeckId, request.ScryfallId, request.Quantity);
+                return Ok(deckCard);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
