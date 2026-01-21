@@ -11,6 +11,9 @@
 Thumbs.db
 'Backend/Deckbuilder Backend/deckbuilder.db'
 *.db
+*-db-shm
+*.db-wal
+
 
 
 # =========================
