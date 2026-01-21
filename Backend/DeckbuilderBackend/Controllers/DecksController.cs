@@ -36,27 +36,15 @@ namespace DeckbuilderBackend.Controllers
 
         // GET: api/decks/{deckId}/cards
         [HttpGet("{deckId}/cards")]
-        public async Task<IActionResult> GetDeckCards(int deckId)
+        public async Task<IActionResult> GetDeckCards(
+            int deckId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
         {
-            var deck = await _deckService.GetDeckWithCardsAsync(deckId);
-            if (deck == null) return NotFound();
+            var result = await _deckService.GetDeckCardsAsync(deckId, page, pageSize);
+            if (result == null) return NotFound();
 
-            // Nur Karten, die im Deck gespeichert sind
-            var cards = deck.DeckCards.Select(dc => new
-            {
-                dc.Card.Id,
-                dc.Card.Name,
-                dc.Card.Color,
-                dc.Card.CMC,
-                dc.Card.Power,
-                dc.Card.Toughness,
-                dc.Card.TypeLine,
-                dc.Card.Rarity,
-                dc.Card.ScryfallURI,
-                dc.Quantity
-            });
-
-            return Ok(cards);
+            return Ok(result);
         }
     }
 }

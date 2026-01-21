@@ -21,7 +21,7 @@ namespace DeckbuilderBackend.Services
         /// Sucht Karten ausschließlich über Scryfall.
         /// Es werden KEINE Karten in der Datenbank gespeichert.
         /// </summary>
-        public Task<List<ScryfallCardDto>> SearchCardsAsync(
+        public Task<ScryfallSearchResultDto> SearchCardsAsync(
             string? name,
             string? color,
             string? typeLine,
@@ -29,9 +29,10 @@ namespace DeckbuilderBackend.Services
             string? cmc,
             string? power,
             string? toughness,
-            int limit = 50)
+            int page = 1,
+            int pageSize = 50)
         {
-            return _scryfallService.SearchAsync(name, color, typeLine, rarity, cmc, power, toughness, limit);
+            return _scryfallService.SearchAsync(name, color, typeLine, rarity, cmc, power, toughness, page, pageSize);
         }
 
         /// <summary>
