@@ -26,17 +26,14 @@ const CardGrid = ({ cards, mode, onAdd, onRemove, emptyState }) => {
               src={imageUrl}
               alt={name}
               loading="lazy"
-              className="h-64 w-full object-cover"
+              className="w-full object-contain"
             />
             {quantity ? (
               <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2 py-1 text-xs font-semibold text-white">
                 {quantity}
               </span>
             ) : null}
-            <div className="flex items-center justify-between gap-2 px-4 py-3">
-              <span className="text-sm font-semibold text-slate-100 truncate">
-                {name}
-              </span>
+            <div className="flex items-center justify-end gap-2 px-4 py-3">
               {mode === "deck" ? (
                 <button
                   type="button"
