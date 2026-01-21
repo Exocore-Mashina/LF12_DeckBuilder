@@ -1,52 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Magic Deckbuilder</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header class="topbar">
-      <h1>Magic Deckbuilder</h1>
-      <button id="CardPage" class="toggleButton">Karten</button>
-      <button id="DeckPage" class="toggleButton">Decks</button>
-      <input type="text" id="searchInput" placeholder="Search cards..." />
-    </header>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Magic Deckbuilder</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
 
-    <section class="filters">
-      <label for="colorFilter">Farbe</label>
-      <input id="colorFilter" name="colorFilter" type="text" placeholder="z.B. R,U (kommasepariert; gültige Buchstaben: W U B R G C)"></input>
+<h1>Magic Deckbuilder</h1>
 
-      <label for="cmcFilter">CMC</label>
-      <input id="cmcFilter" name="cmcFilter" type="number" placeholder="muss noch schauen"></input>
-      
-      <label for="powerFilter">Stärke</label>
-      <input id="powerFilter" name="powerFilter" type="text" placeholder="muss noch schauen"></input>
-      
-      <label for="toughnessFilter">Verteidigung</label>
-      <input id="toughnessFilter" name="toughnessFilter" type="text" placeholder="muss noch schauen"></input>
+<!-- Deck erstellen -->
+<div class="deck-section">
+  <h2>Neues Deck erstellen</h2>
+  <input type="text" id="deck-name" placeholder="Deckname">
+  <button id="create-deck-btn">Deck erstellen</button>
+  <p id="deck-message"></p>
+  <select id="deck-select"></select>
+</div>
 
-      <label for="rarityFilter">Seltenheit</label>
-      <select id="rarityFilter" name="rarityFilter">
-        <option value="">All Rarities</option>
-        <option value="Common">Common</option>
-        <option value="Uncommon">Uncommon</option>
-        <option value="Rare">Rare</option>
-        <option value="Mythic">Mythic</option>
-      </select>
+<hr>
 
-      <label for="typeFilter">Typ</label>
-      <select id="typeFilter" name="typeFilter">
-        <option value="">All Types</option>
-        <option value="Creature">Creature</option>
-        <option value="Spell">Spell</option>
-      </select>
+<!-- Karten suchen -->
+<div class="search-section">
+  <h2>Karten suchen</h2>
+  <input type="text" id="card-search" placeholder="Kartennamen">
+  <div id="search-results"></div>
+</div>
 
-      <button id="searchBtn">Suchen</button>
-    </section>
-
-    <main id="cardGrid" class="grid"></main>
-
-    <script src="app.js"></script>
-  </body>
+<script src="app.js"></script>
+</body>
 </html>
