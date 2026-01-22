@@ -47,17 +47,17 @@ namespace DeckbuilderBackend.Services
             if (string.IsNullOrWhiteSpace(scryfallId))
                 throw new ArgumentException("ScryfallId darf nicht leer sein.", nameof(scryfallId));
 
-            var deckExists = await _context.Decks.AnyAsync(d => d.Id == deckId);
+            bool deckExists = await _context.Decks.AnyAsync(d => d.Id == deckId);
             if (!deckExists)
                 throw new InvalidOperationException($"Deck mit ID {deckId} existiert nicht.");
 
-            var existingCard = await _context.Cards.FirstOrDefaultAsync(c => c.ScryfallId == scryfallId);
+            Card? existingCard = await _context.Cards.FirstOrDefaultAsync(c => c.ScryfallId == scryfallId);
 
             if (existingCard == null)
             {
-                var dto = await _scryfallService.GetCardByIdAsync(scryfallId);
+                ScryfallCardDto dto = await _scryfallService.GetCardByIdAsync(scryfallId);
 
-                var cardEntity = new Card
+                Card cardEntity = new Card
                 {
                     Name = dto.Name,
                     CardText = dto.OracleText,
@@ -76,7 +76,7 @@ namespace DeckbuilderBackend.Services
                 existingCard = cardEntity;
             }
 
-            var deckCard = await _context.DeckCards
+            DeckCard? deckCard = await _context.DeckCards
                 .FirstOrDefaultAsync(dc => dc.DeckId == deckId && dc.CardId == existingCard.Id);
 
             if (deckCard != null)
@@ -109,15 +109,15 @@ namespace DeckbuilderBackend.Services
             if (string.IsNullOrWhiteSpace(scryfallId))
                 throw new ArgumentException("ScryfallId darf nicht leer sein.", nameof(scryfallId));
 
-            var deckExists = await _context.Decks.AnyAsync(d => d.Id == deckId);
+            bool deckExists = await _context.Decks.AnyAsync(d => d.Id == deckId);
             if (!deckExists)
                 throw new InvalidOperationException($"Deck mit ID {deckId} existiert nicht.");
 
-            var card = await _context.Cards.FirstOrDefaultAsync(c => c.ScryfallId == scryfallId);
+            Card? card = await _context.Cards.FirstOrDefaultAsync(c => c.ScryfallId == scryfallId);
             if (card == null)
                 throw new InvalidOperationException("Karte ist nicht in der Datenbank vorhanden.");
 
-            var deckCard = await _context.DeckCards
+            DeckCard? deckCard = await _context.DeckCards
                 .FirstOrDefaultAsync(dc => dc.DeckId == deckId && dc.CardId == card.Id);
 
             if (deckCard == null)

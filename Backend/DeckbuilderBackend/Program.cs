@@ -2,7 +2,7 @@ using DeckbuilderBackend.Data;
 using DeckbuilderBackend.Services;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Controller
 builder.Services.AddControllers();
@@ -33,7 +33,7 @@ builder.Services.AddScoped<DeckService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();

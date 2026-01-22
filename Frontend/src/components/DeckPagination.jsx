@@ -4,8 +4,7 @@ const DeckPagination = ({
   totalCount,
   pageSize,
   onPrev,
-  onNext,
-  onPageSizeChange
+  onNext
 }) => {
   if (!isVisible) {
     return null;
@@ -19,7 +18,7 @@ const DeckPagination = ({
         type="button"
         onClick={onPrev}
         disabled={page <= 1}
-        className="rounded-full border border-slate-700 px-3 py-1 text-slate-200 transition enabled:hover:border-emerald-400 enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded border border-slate-700 px-3 py-1 text-slate-200 transition enabled:hover:border-emerald-400 enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
       >
         Zurück
       </button>
@@ -30,23 +29,11 @@ const DeckPagination = ({
         type="button"
         onClick={onNext}
         disabled={page >= totalPages}
-        className="rounded-full border border-slate-700 px-3 py-1 text-slate-200 transition enabled:hover:border-emerald-400 enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded border border-slate-700 px-3 py-1 text-slate-200 transition enabled:hover:border-emerald-400 enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
       >
         Weiter
       </button>
-      <div className="ml-auto flex items-center gap-2 text-slate-400">
-        <label htmlFor="deckPageSize">Pro Seite</label>
-        <select
-          id="deckPageSize"
-          value={pageSize}
-          onChange={(event) => onPageSizeChange(Number(event.target.value))}
-          className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-slate-200"
-        >
-          <option value={8}>8</option>
-          <option value={12}>12</option>
-          <option value={16}>16</option>
-        </select>
-      </div>
+      <div className="ml-auto text-slate-400">{pageSize} pro Seite</div>
     </div>
   );
 };

@@ -17,7 +17,7 @@ const DecksView = ({
       <div>
         <h2 className="text-2xl font-semibold text-white">Decks</h2>
         <p className="text-sm text-slate-400">
-          Wähle ein Deck aus und analysiere dessen Aufbau.
+          Wähle ein Deck aus, um die Karten zu sehen.
         </p>
       </div>
 
@@ -25,38 +25,21 @@ const DecksView = ({
         className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"
         onSubmit={onDeckCreate}
       >
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label
-              className="text-xs font-semibold uppercase tracking-wide text-slate-400"
-              htmlFor="deckNameInput"
-            >
-              Neues Deck
-            </label>
-            <input
-              id="deckNameInput"
-              name="deckNameInput"
-              type="text"
-              required
-              className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
-              placeholder="z.B. Mono Red"
-            />
-          </div>
-          <div>
-            <label
-              className="text-xs font-semibold uppercase tracking-wide text-slate-400"
-              htmlFor="deckDescriptionInput"
-            >
-              Beschreibung (optional)
-            </label>
-            <input
-              id="deckDescriptionInput"
-              name="deckDescriptionInput"
-              type="text"
-              className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
-              placeholder="Kurzer Hinweis zum Deck"
-            />
-          </div>
+        <div>
+          <label
+            className="text-xs font-semibold uppercase tracking-wide text-slate-400"
+            htmlFor="deckNameInput"
+          >
+            Neues Deck
+          </label>
+          <input
+            id="deckNameInput"
+            name="deckNameInput"
+            type="text"
+            required
+            className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+            placeholder="z.B. Mono Red"
+          />
         </div>
         <button
           type="submit"
@@ -83,9 +66,6 @@ const DecksView = ({
             </option>
           ))}
         </select>
-        <span className="text-sm text-slate-400">
-          Bitte wähle ein Deck aus, um die Karten zu sehen.
-        </span>
       </div>
 
       <DeckSummary summary={deckSummary} />
