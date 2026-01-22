@@ -31,7 +31,7 @@ const TopBar = ({
                   onSearchSubmit();
                 }
               }}
-              placeholder="Search cards..."
+              placeholder="Karten suchen..."
               className="w-full rounded-full border border-slate-700 bg-slate-950/80 px-4 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none md:max-w-[240px]"
             />
           ) : (

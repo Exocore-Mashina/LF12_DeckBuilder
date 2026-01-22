@@ -4,8 +4,7 @@ const CardsPagination = ({
   totalCount,
   pageSize,
   onPrev,
-  onNext,
-  onPageSizeChange
+  onNext
 }) => {
   if (!isVisible) {
     return null;
@@ -34,19 +33,7 @@ const CardsPagination = ({
       >
         Weiter
       </button>
-      <div className="ml-auto flex items-center gap-2 text-slate-400">
-        <label htmlFor="cardsPageSize">Pro Seite</label>
-        <select
-          id="cardsPageSize"
-          value={pageSize}
-          onChange={(event) => onPageSizeChange(Number(event.target.value))}
-          className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-slate-200"
-        >
-          <option value={8}>8</option>
-          <option value={12}>12</option>
-          <option value={16}>16</option>
-        </select>
-      </div>
+      <div className="ml-auto text-slate-400">{pageSize} pro Seite</div>
     </div>
   );
 };

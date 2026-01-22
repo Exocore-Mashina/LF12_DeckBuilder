@@ -14,19 +14,18 @@ import {
 } from "./utils/api.js";
 
 const DEFAULT_PAGE_SIZE = 12;
+const CARDS_PAGE_SIZE = 20;
 
 const App = () => {
   const [activeTab, setActiveTab] = useState("cards");
   const [isLoading, setIsLoading] = useState(false);
   const [cards, setCards] = useState([]);
-  const [allCards, setAllCards] = useState([]);
   const [deckCards, setDeckCards] = useState([]);
   const [deckSummary, setDeckSummary] = useState(null);
   const [decks, setDecks] = useState([]);
   const [selectedDeckId, setSelectedDeckId] = useState("");
   const [selectedDeckViewId, setSelectedDeckViewId] = useState("");
   const [cardsPage, setCardsPage] = useState(1);
-  const [cardsPageSize, setCardsPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [cardsTotalCount, setCardsTotalCount] = useState(0);
   const [deckPage, setDeckPage] = useState(1);
   const [deckPageSize, setDeckPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -62,7 +61,7 @@ const App = () => {
     }
   }, []);
 
-  const loadCards = useCallback(async () => {
+  const loadCards = useCallback(async (requestedPage = 1) => {
     const params = new URLSearchParams();
     const colorValue = normalizeColor(filters.color);
 
@@ -73,6 +72,8 @@ const App = () => {
     if (filters.cmc) params.append("cmc", filters.cmc);
     if (filters.power) params.append("power", filters.power);
     if (filters.toughness) params.append("toughness", filters.toughness);
+    params.append("page", String(requestedPage));
+    params.append("pageSize", String(CARDS_PAGE_SIZE));
 
     const url = `${CARD_SEARCH_URL}?${params.toString()}`;
 
@@ -83,16 +84,19 @@ const App = () => {
       const response = await fetchWithTimeout(url);
       if (!response.ok) {
         console.error("Fehler beim Laden der Karten:", response.status);
-        setAllCards([]);
+        setCards([]);
+        setCardsTotalCount(0);
         return;
       }
 
       const result = await response.json();
-      setAllCards(result.cards || []);
-      setCardsPage(1);
+      setCards(result.cards || []);
+      setCardsTotalCount(result.totalCards ?? 0);
+      setCardsPage(result.page ?? requestedPage);
     } catch (error) {
       console.error("Netzwerkfehler beim Laden der Karten:", error);
-      setAllCards([]);
+      setCards([]);
+      setCardsTotalCount(0);
     } finally {
       setIsLoading(false);
     }
@@ -268,28 +272,15 @@ const App = () => {
     selectedDeckViewId
   ]);
 
-  useEffect(() => {
-    const total = allCards.length;
-    const totalPages = Math.max(1, Math.ceil(total / cardsPageSize));
-    const safePage = Math.min(cardsPage, totalPages);
-    if (safePage !== cardsPage) {
-      setCardsPage(safePage);
-      return;
-    }
-    const start = (safePage - 1) * cardsPageSize;
-    setCardsTotalCount(total);
-    setCards(allCards.slice(start, start + cardsPageSize));
-  }, [allCards, cardsPage, cardsPageSize]);
-
   return (
     <div className="min-h-screen pb-12">
-      <TopBar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        searchTerm={searchTerm}
-        onSearchTermChange={setSearchTerm}
-        onSearchSubmit={loadCards}
-      />
+        <TopBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          onSearchSubmit={() => loadCards(1)}
+        />
 
       {activeTab === "cards" ? (
         <SearchFilters
@@ -298,7 +289,7 @@ const App = () => {
           deckOptions={decks}
           onFiltersChange={setFilters}
           onDeckChange={setSelectedDeckId}
-          onSearch={loadCards}
+          onSearch={() => loadCards(1)}
         />
       ) : null}
 
@@ -310,18 +301,20 @@ const App = () => {
             isVisible: cardsTotalCount > 0,
             page: cardsPage,
             totalCount: cardsTotalCount,
-            pageSize: cardsPageSize,
-            onPrev: () => setCardsPage((prev) => Math.max(prev - 1, 1)),
+            pageSize: CARDS_PAGE_SIZE,
+            onPrev: () => {
+              const prevPage = Math.max(cardsPage - 1, 1);
+              setCardsPage(prevPage);
+              loadCards(prevPage);
+            },
             onNext: () => {
               const totalPages = Math.max(
                 1,
-                Math.ceil(cardsTotalCount / cardsPageSize)
+                Math.ceil(cardsTotalCount / CARDS_PAGE_SIZE)
               );
-              setCardsPage((prev) => Math.min(prev + 1, totalPages));
-            },
-            onPageSizeChange: (value) => {
-              setCardsPageSize(value);
-              setCardsPage(1);
+              const nextPage = Math.min(cardsPage + 1, totalPages);
+              setCardsPage(nextPage);
+              loadCards(nextPage);
             }
           }}
         />
