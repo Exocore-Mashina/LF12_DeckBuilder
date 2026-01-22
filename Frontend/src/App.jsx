@@ -13,8 +13,8 @@ import {
   normalizeColor
 } from "./utils/api.js";
 
-const DEFAULT_PAGE_SIZE = 12;
 const CARDS_PAGE_SIZE = 20;
+const DECK_PAGE_SIZE = 20;
 
 const App = () => {
   const [activeTab, setActiveTab] = useState("cards");
@@ -28,7 +28,6 @@ const App = () => {
   const [cardsPage, setCardsPage] = useState(1);
   const [cardsTotalCount, setCardsTotalCount] = useState(0);
   const [deckPage, setDeckPage] = useState(1);
-  const [deckPageSize, setDeckPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [deckTotalCount, setDeckTotalCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
@@ -110,7 +109,7 @@ const App = () => {
         return;
       }
 
-      const url = `${DECKS_URL}/${deckId}/cards?page=${deckPage}&pageSize=${deckPageSize}`;
+      const url = `${DECKS_URL}/${deckId}/cards?page=${deckPage}&pageSize=${DECK_PAGE_SIZE}`;
 
       try {
         setIsLoading(true);
@@ -131,7 +130,7 @@ const App = () => {
         setIsLoading(false);
       }
     },
-    [deckPage, deckPageSize]
+    [deckPage]
   );
 
   const loadDeckSummary = useCallback(async (deckId) => {
@@ -221,9 +220,8 @@ const App = () => {
     event.preventDefault();
     const formData = new FormData(event.target);
     const name = String(formData.get("deckNameInput") || "").trim();
-    const description = String(formData.get("deckDescriptionInput") || "").trim();
     if (!name) return;
-    const body = JSON.stringify({ name, description: description || null });
+    const body = JSON.stringify({ name });
     try {
       setIsLoading(true);
       const response = await fetchWithTimeout(`${DECKS_URL}/create`, {
@@ -266,7 +264,6 @@ const App = () => {
   }, [
     activeTab,
     deckPage,
-    deckPageSize,
     loadDeckCards,
     loadDeckSummary,
     selectedDeckViewId
@@ -334,18 +331,14 @@ const App = () => {
             isVisible: Boolean(selectedDeckViewId) && deckTotalCount > 0,
             page: deckPage,
             totalCount: deckTotalCount,
-            pageSize: deckPageSize,
+            pageSize: DECK_PAGE_SIZE,
             onPrev: () => setDeckPage((prev) => Math.max(prev - 1, 1)),
             onNext: () => {
               const totalPages = Math.max(
                 1,
-                Math.ceil(deckTotalCount / deckPageSize)
+                Math.ceil(deckTotalCount / DECK_PAGE_SIZE)
               );
               setDeckPage((prev) => Math.min(prev + 1, totalPages));
-            },
-            onPageSizeChange: (value) => {
-              setDeckPageSize(value);
-              setDeckPage(1);
             }
           }}
         />

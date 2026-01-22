@@ -1,4 +1,5 @@
-﻿using DeckbuilderBackend.Models.DTOs;
+﻿using DeckbuilderBackend.Models;
+using DeckbuilderBackend.Models.DTOs;
 using DeckbuilderBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,7 +31,7 @@ namespace DeckbuilderBackend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
-            var result = await _cardService.SearchCardsAsync(
+            ScryfallSearchResultDto result = await _cardService.SearchCardsAsync(
                 name,
                 color,
                 typeLine,
@@ -51,7 +52,7 @@ namespace DeckbuilderBackend.Controllers
         {
             try
             {
-                var deckCard = await _cardService.AddCardToDeckAsync(request.DeckId, request.ScryfallId, request.Quantity);
+                DeckCard deckCard = await _cardService.AddCardToDeckAsync(request.DeckId, request.ScryfallId, request.Quantity);
                 return Ok(deckCard);
             }
             catch (InvalidOperationException ex)
@@ -74,7 +75,7 @@ namespace DeckbuilderBackend.Controllers
         {
             try
             {
-                var deckCard = await _cardService.RemoveCardFromDeckAsync(request.DeckId, request.ScryfallId, request.Quantity);
+                DeckCard? deckCard = await _cardService.RemoveCardFromDeckAsync(request.DeckId, request.ScryfallId, request.Quantity);
                 return Ok(deckCard);
             }
             catch (InvalidOperationException ex)

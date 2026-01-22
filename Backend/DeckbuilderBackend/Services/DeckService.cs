@@ -22,7 +22,7 @@ namespace DeckbuilderBackend.Services
         /// </summary>
         public async Task<Deck> CreateDeckAsync(DeckDTO request)
         {
-            var deck = new Deck
+            Deck deck = new Deck
             {
                 Name = request.Name,
                 Description = request.Description ?? string.Empty
@@ -59,18 +59,18 @@ namespace DeckbuilderBackend.Services
             if (pageSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(pageSize), "PageSize muss >= 1 sein.");
 
-            var deckExists = await _context.Decks.AnyAsync(d => d.Id == deckId);
+            bool deckExists = await _context.Decks.AnyAsync(d => d.Id == deckId);
             if (!deckExists)
                 return null;
 
-            var query = _context.DeckCards
+            IQueryable<DeckCard> query = _context.DeckCards
                 .Where(dc => dc.DeckId == deckId)
                 .Include(dc => dc.Card)
                 .OrderBy(dc => dc.Card.Name);
 
-            var totalCount = await query.CountAsync();
+            int totalCount = await query.CountAsync();
 
-            var items = await query
+            List<DeckCardListItemDto> items = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(dc => new DeckCardListItemDto
@@ -103,7 +103,7 @@ namespace DeckbuilderBackend.Services
         /// </summary>
         public async Task<DeckSummaryDto?> GetDeckSummaryAsync(int deckId)
         {
-            var deck = await _context.Decks
+            Deck? deck = await _context.Decks
                 .Include(d => d.DeckCards)
                 .ThenInclude(dc => dc.Card)
                 .FirstOrDefaultAsync(d => d.Id == deckId);
@@ -111,31 +111,31 @@ namespace DeckbuilderBackend.Services
             if (deck == null)
                 return null;
 
-            var totalCards = deck.DeckCards.Sum(dc => dc.Quantity);
-            var totalCmc = deck.DeckCards.Sum(dc => dc.Card.CMC * dc.Quantity);
+            int totalCards = deck.DeckCards.Sum(dc => dc.Quantity);
+            double totalCmc = deck.DeckCards.Sum(dc => dc.Card.CMC * dc.Quantity);
 
-            var colors = new Dictionary<string, int>();
-            var types = new Dictionary<string, int>();
-            var rarities = new Dictionary<string, int>();
+            Dictionary<string, int> colors = new Dictionary<string, int>();
+            Dictionary<string, int> types = new Dictionary<string, int>();
+            Dictionary<string, int> rarities = new Dictionary<string, int>();
 
-            foreach (var deckCard in deck.DeckCards)
+            foreach (DeckCard deckCard in deck.DeckCards)
             {
-                var card = deckCard.Card;
-                var quantity = deckCard.Quantity;
+                Card card = deckCard.Card;
+                int quantity = deckCard.Quantity;
 
-                var colorTokens = string.IsNullOrWhiteSpace(card.Color)
+                string[] colorTokens = string.IsNullOrWhiteSpace(card.Color)
                     ? new[] { "C" }
                     : card.Color.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-                foreach (var color in colorTokens)
+                foreach (string color in colorTokens)
                 {
                     if (!colors.ContainsKey(color))
                         colors[color] = 0;
                     colors[color] += quantity;
                 }
 
-                var typeLine = card.TypeLine ?? string.Empty;
-                var typeLabels = new[]
+                string typeLine = card.TypeLine ?? string.Empty;
+                string[] typeLabels = new[]
                 {
                     "Creature",
                     "Instant",
@@ -146,8 +146,8 @@ namespace DeckbuilderBackend.Services
                     "Land"
                 };
 
-                var matchedAny = false;
-                foreach (var type in typeLabels)
+                bool matchedAny = false;
+                foreach (string type in typeLabels)
                 {
                     if (typeLine.Contains(type, StringComparison.OrdinalIgnoreCase))
                     {
@@ -165,7 +165,7 @@ namespace DeckbuilderBackend.Services
                     types["Other"] += quantity;
                 }
 
-                var rarity = string.IsNullOrWhiteSpace(card.Rarity) ? "Unknown" : card.Rarity;
+                string rarity = string.IsNullOrWhiteSpace(card.Rarity) ? "Unknown" : card.Rarity;
                 if (!rarities.ContainsKey(rarity))
                     rarities[rarity] = 0;
                 rarities[rarity] += quantity;

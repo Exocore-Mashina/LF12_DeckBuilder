@@ -29,7 +29,7 @@ namespace DeckbuilderBackend.Services
             int page = 1,
             int pageSize = 50)
         {
-            var query = BuildQuery(name, color, typeLine, rarity, cmc, power, toughness);
+            string query = BuildQuery(name, color, typeLine, rarity, cmc, power, toughness);
 
             // Scryfall braucht eine nicht-leere Query
             if (string.IsNullOrWhiteSpace(query))
@@ -41,21 +41,21 @@ namespace DeckbuilderBackend.Services
             if (pageSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(pageSize), "PageSize muss >= 1 sein.");
 
-            var url = $"cards/search?q={Uri.EscapeDataString(query)}&unique=cards&order=name&page={page}&page_size={pageSize}";
+            string url = $"cards/search?q={Uri.EscapeDataString(query)}&unique=cards&order=name&page={page}&page_size={pageSize}";
 
-            using var response = await _http.GetAsync(url);
+            using HttpResponseMessage response = await _http.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
-                var body = await response.Content.ReadAsStringAsync();
+                string body = await response.Content.ReadAsStringAsync();
                 // Kurze, hilfreiche Fehlermeldung für Debug/Schule
                 throw new HttpRequestException($"Scryfall Fehler {(int)response.StatusCode}: {response.ReasonPhrase}. URL: {url}. Antwort: {body}");
             }
 
-            var json = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
+            string json = await response.Content.ReadAsStringAsync();
+            using JsonDocument doc = JsonDocument.Parse(json);
 
-            if (!doc.RootElement.TryGetProperty("data", out var data))
+            if (!doc.RootElement.TryGetProperty("data", out JsonElement data))
             {
                 return new ScryfallSearchResultDto
                 {
@@ -67,19 +67,19 @@ namespace DeckbuilderBackend.Services
                 };
             }
 
-            var cards = data.EnumerateArray()
+            List<ScryfallCardDto> cards = data.EnumerateArray()
                 .Select(MapCard)
                 .Take(pageSize)
                 .ToList();
 
-            var totalCards = doc.RootElement.TryGetProperty("total_cards", out var totalProp)
+            int totalCards = doc.RootElement.TryGetProperty("total_cards", out JsonElement totalProp)
                 ? totalProp.GetInt32()
                 : cards.Count;
 
-            var hasMore = doc.RootElement.TryGetProperty("has_more", out var hasMoreProp)
+            bool hasMore = doc.RootElement.TryGetProperty("has_more", out JsonElement hasMoreProp)
                 && hasMoreProp.GetBoolean();
 
-            var nextPage = doc.RootElement.TryGetProperty("next_page", out var nextProp)
+            string? nextPage = doc.RootElement.TryGetProperty("next_page", out JsonElement nextProp)
                 ? nextProp.GetString()
                 : null;
 
@@ -99,18 +99,18 @@ namespace DeckbuilderBackend.Services
             if (string.IsNullOrWhiteSpace(scryfallId))
                 throw new ArgumentException("ScryfallId darf nicht leer sein.", nameof(scryfallId));
 
-            var url = $"cards/{Uri.EscapeDataString(scryfallId)}";
+            string url = $"cards/{Uri.EscapeDataString(scryfallId)}";
 
-            using var response = await _http.GetAsync(url);
+            using HttpResponseMessage response = await _http.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
-                var body = await response.Content.ReadAsStringAsync();
+                string body = await response.Content.ReadAsStringAsync();
                 throw new HttpRequestException($"Scryfall Fehler {(int)response.StatusCode}: {response.ReasonPhrase}. URL: {url}. Antwort: {body}");
             }
 
-            var json = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
+            string json = await response.Content.ReadAsStringAsync();
+            using JsonDocument doc = JsonDocument.Parse(json);
 
             return MapCard(doc.RootElement);
         }
@@ -119,18 +119,18 @@ namespace DeckbuilderBackend.Services
         {
             return new ScryfallCardDto
             {
-                Id = item.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "",
+                Id = item.TryGetProperty("id", out JsonElement idProp) ? idProp.GetString() ?? "" : "",
                 Name = item.GetProperty("name").GetString() ?? "",
-                OracleText = item.TryGetProperty("oracle_text", out var t) ? t.GetString() ?? "" : "",
-                Color = item.TryGetProperty("colors", out var c) && c.ValueKind == JsonValueKind.Array
+                OracleText = item.TryGetProperty("oracle_text", out JsonElement t) ? t.GetString() ?? "" : "",
+                Color = item.TryGetProperty("colors", out JsonElement c) && c.ValueKind == JsonValueKind.Array
                     ? string.Join(",", c.EnumerateArray().Select(x => x.GetString()))
                     : "",
-                Cmc = item.TryGetProperty("cmc", out var cmcProp) ? cmcProp.GetDouble() : 0,
-                Power = item.TryGetProperty("power", out var p) ? p.GetString() ?? "" : "",
-                Toughness = item.TryGetProperty("toughness", out var tou) ? tou.GetString() ?? "" : "",
-                TypeLine = item.TryGetProperty("type_line", out var typeProp) ? typeProp.GetString() ?? "" : "",
-                Rarity = item.TryGetProperty("rarity", out var rarProp) ? rarProp.GetString() ?? "" : "",
-                ScryfallUri = item.TryGetProperty("scryfall_uri", out var uriProp) ? uriProp.GetString() ?? "" : ""
+                Cmc = item.TryGetProperty("cmc", out JsonElement cmcProp) ? cmcProp.GetDouble() : 0,
+                Power = item.TryGetProperty("power", out JsonElement p) ? p.GetString() ?? "" : "",
+                Toughness = item.TryGetProperty("toughness", out JsonElement tou) ? tou.GetString() ?? "" : "",
+                TypeLine = item.TryGetProperty("type_line", out JsonElement typeProp) ? typeProp.GetString() ?? "" : "",
+                Rarity = item.TryGetProperty("rarity", out JsonElement rarProp) ? rarProp.GetString() ?? "" : "",
+                ScryfallUri = item.TryGetProperty("scryfall_uri", out JsonElement uriProp) ? uriProp.GetString() ?? "" : ""
             };
         }
 
@@ -143,14 +143,14 @@ namespace DeckbuilderBackend.Services
             string? power,
             string? toughness)
         {
-            var parts = new List<string>();
+            List<string> parts = new List<string>();
 
             if (!string.IsNullOrWhiteSpace(name))
                 parts.Add($"name:{name}");
 
             if (!string.IsNullOrWhiteSpace(color))
             {
-                var c = NormalizeColor(color);
+                string c = NormalizeColor(color);
                 if (!string.IsNullOrEmpty(c))
                     parts.Add($"c:{c}");
             }
@@ -163,19 +163,19 @@ namespace DeckbuilderBackend.Services
 
             if (!string.IsNullOrWhiteSpace(cmc))
             {
-                var cmp = NormalizeComparison("mv", cmc);
+                string cmp = NormalizeComparison("mv", cmc);
                 if (!string.IsNullOrEmpty(cmp)) parts.Add(cmp);
             }
 
             if (!string.IsNullOrWhiteSpace(power))
             {
-                var cmp = NormalizeComparison("pow", power);
+                string cmp = NormalizeComparison("pow", power);
                 if (!string.IsNullOrEmpty(cmp)) parts.Add(cmp);
             }
 
             if (!string.IsNullOrWhiteSpace(toughness))
             {
-                var cmp = NormalizeComparison("tou", toughness);
+                string cmp = NormalizeComparison("tou", toughness);
                 if (!string.IsNullOrEmpty(cmp)) parts.Add(cmp);
             }
 
@@ -185,13 +185,13 @@ namespace DeckbuilderBackend.Services
         private static string NormalizeColor(string color)
         {
             // erlaubt "R,U" oder "ru" -> "ru"
-            var cleaned = Regex.Replace(color, @"[^wubrgcWUBRGC]", "");
+            string cleaned = Regex.Replace(color, @"[^wubrgcWUBRGC]", "");
             return cleaned.ToLowerInvariant();
         }
 
         private static string NormalizeComparison(string keyword, string value)
         {
-            var v = value.Trim().Replace(" ", "");
+            string v = value.Trim().Replace(" ", "");
 
             // erlaubt >=3, <=2, !=1, >5, <4, =3 oder 3
             if (Regex.IsMatch(v, @"^([<>]=?|!=|=)?-?\d+(\.\d+)?$"))

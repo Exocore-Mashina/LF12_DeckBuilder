@@ -1,3 +1,4 @@
+using DeckbuilderBackend.Models;
 using DeckbuilderBackend.Models.DTOs;
 using DeckbuilderBackend.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ namespace DeckbuilderBackend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDecks()
         {
-            var decks = await _deckService.GetAllDecksAsync();
+            List<DeckListItemDto> decks = await _deckService.GetAllDecksAsync();
             return Ok(decks);
         }
 
@@ -30,7 +31,7 @@ namespace DeckbuilderBackend.Controllers
             if (string.IsNullOrWhiteSpace(request.Name))
                 return BadRequest("Deckname darf nicht leer sein.");
 
-            var deck = await _deckService.CreateDeckAsync(request);
+            Deck deck = await _deckService.CreateDeckAsync(request);
             return Ok(deck);
         }
 
@@ -41,7 +42,7 @@ namespace DeckbuilderBackend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
-            var result = await _deckService.GetDeckCardsAsync(deckId, page, pageSize);
+            PagedResult<DeckCardListItemDto>? result = await _deckService.GetDeckCardsAsync(deckId, page, pageSize);
             if (result == null) return NotFound();
 
             return Ok(result);
@@ -51,7 +52,7 @@ namespace DeckbuilderBackend.Controllers
         [HttpGet("{deckId}/summary")]
         public async Task<IActionResult> GetDeckSummary(int deckId)
         {
-            var result = await _deckService.GetDeckSummaryAsync(deckId);
+            DeckSummaryDto? result = await _deckService.GetDeckSummaryAsync(deckId);
             if (result == null) return NotFound();
 
             return Ok(result);
