@@ -5,12 +5,14 @@ import LoadingOverlay from "./components/LoadingOverlay.jsx";
 import SearchFilters from "./components/SearchFilters.jsx";
 import TopBar from "./components/TopBar.jsx";
 import {
-  ADD_TO_DECK_URL,
-  CARD_SEARCH_URL,
-  DECKS_URL,
-  REMOVE_FROM_DECK_URL,
-  fetchWithTimeout,
-  normalizeColor
+  buildCardSearchParams,
+  addCardToDeckRequest,
+  createDeck,
+  fetchCards,
+  fetchDeckCards,
+  fetchDeckSummary,
+  fetchDecks,
+  removeCardFromDeckRequest
 } from "./utils/api.js";
 
 const CARDS_PAGE_SIZE = 20;
@@ -42,7 +44,7 @@ const App = () => {
   const loadDecks = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetchWithTimeout(DECKS_URL);
+      const response = await fetchDecks();
       if (!response.ok) {
         console.error("Decks konnten nicht geladen werden.");
         return;
@@ -61,26 +63,18 @@ const App = () => {
   }, []);
 
   const loadCards = useCallback(async (requestedPage = 1) => {
-    const params = new URLSearchParams();
-    const colorValue = normalizeColor(filters.color);
-
-    if (searchTerm) params.append("name", searchTerm);
-    if (colorValue) params.append("color", colorValue);
-    if (filters.typeLine) params.append("typeLine", filters.typeLine);
-    if (filters.rarity) params.append("rarity", filters.rarity);
-    if (filters.cmc) params.append("cmc", filters.cmc);
-    if (filters.power) params.append("power", filters.power);
-    if (filters.toughness) params.append("toughness", filters.toughness);
-    params.append("page", String(requestedPage));
-    params.append("pageSize", String(CARDS_PAGE_SIZE));
-
-    const url = `${CARD_SEARCH_URL}?${params.toString()}`;
+    const params = buildCardSearchParams({
+      searchTerm,
+      filters,
+      page: requestedPage,
+      pageSize: CARDS_PAGE_SIZE
+    });
 
     if (isLoading) return;
     setIsLoading(true);
 
     try {
-      const response = await fetchWithTimeout(url);
+      const response = await fetchCards(params);
       if (!response.ok) {
         console.error("Fehler beim Laden der Karten:", response.status);
         setCards([]);
@@ -109,11 +103,9 @@ const App = () => {
         return;
       }
 
-      const url = `${DECKS_URL}/${deckId}/cards?page=${deckPage}&pageSize=${DECK_PAGE_SIZE}`;
-
       try {
         setIsLoading(true);
-        const response = await fetchWithTimeout(url);
+        const response = await fetchDeckCards(deckId, deckPage, DECK_PAGE_SIZE);
         if (!response.ok) {
           console.error("Fehler beim Laden der Deck-Karten:", response.status);
           setDeckCards([]);
@@ -138,9 +130,8 @@ const App = () => {
       setDeckSummary(null);
       return;
     }
-    const url = `${DECKS_URL}/${deckId}/summary`;
     try {
-      const response = await fetchWithTimeout(url);
+      const response = await fetchDeckSummary(deckId);
       if (!response.ok) {
         setDeckSummary(null);
         return;
@@ -158,18 +149,9 @@ const App = () => {
       alert("Bitte zuerst ein Deck auswählen.");
       return;
     }
-    const body = JSON.stringify({
-      deckId: Number(selectedDeckId),
-      quantity: 1,
-      scryfallId
-    });
     try {
       setIsLoading(true);
-      const response = await fetchWithTimeout(ADD_TO_DECK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body
-      });
+      const response = await addCardToDeckRequest(selectedDeckId, scryfallId);
 
       if (!response.ok) {
         alert(`Fehler beim Hinzufügen der Karte: ${response.status}`);
@@ -189,18 +171,12 @@ const App = () => {
       alert("Bitte zuerst ein Deck auswählen.");
       return;
     }
-    const body = JSON.stringify({
-      deckId: Number(selectedDeckViewId),
-      quantity: 1,
-      scryfallId
-    });
     try {
       setIsLoading(true);
-      const response = await fetchWithTimeout(REMOVE_FROM_DECK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body
-      });
+      const response = await removeCardFromDeckRequest(
+        selectedDeckViewId,
+        scryfallId
+      );
       if (!response.ok) {
         alert(`Fehler beim Entfernen der Karte: ${response.status}`);
         return;
@@ -221,14 +197,9 @@ const App = () => {
     const formData = new FormData(event.target);
     const name = String(formData.get("deckNameInput") || "").trim();
     if (!name) return;
-    const body = JSON.stringify({ name });
     try {
       setIsLoading(true);
-      const response = await fetchWithTimeout(`${DECKS_URL}/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body
-      });
+      const response = await createDeck(name);
       if (!response.ok) {
         alert(`Fehler beim Erstellen des Decks: ${response.status}`);
         return;
