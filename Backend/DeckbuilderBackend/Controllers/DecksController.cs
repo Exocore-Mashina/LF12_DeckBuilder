@@ -16,7 +16,9 @@ namespace DeckbuilderBackend.Controllers
             _deckService = deckService;
         }
 
-        // GET: api/decks
+        /// <summary>
+        /// Gibt alle Decks zurück.
+        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetDecks()
         {
@@ -24,7 +26,9 @@ namespace DeckbuilderBackend.Controllers
             return Ok(decks);
         }
 
-        // POST: api/decks/create
+        /// <summary>
+        /// Erstellt ein neues Deck.
+        /// </summary>
         [HttpPost("create")]
         public async Task<IActionResult> CreateDeck([FromBody] DeckDTO request)
         {
@@ -35,7 +39,9 @@ namespace DeckbuilderBackend.Controllers
             return Ok(deck);
         }
 
-        // GET: api/decks/{deckId}/cards
+        /// <summary>
+        /// Gibt die Karten eines Decks zurück, paginiert.
+        /// </summary>
         [HttpGet("{deckId}/cards")]
         public async Task<IActionResult> GetDeckCards(
             int deckId,
@@ -48,7 +54,9 @@ namespace DeckbuilderBackend.Controllers
             return Ok(result);
         }
 
-        // GET: api/decks/{deckId}/summary
+        /// <summary>
+        /// Gibt eine Zusammenfassung des Decks zurück.
+        /// </summary>
         [HttpGet("{deckId}/summary")]
         public async Task<IActionResult> GetDeckSummary(int deckId)
         {

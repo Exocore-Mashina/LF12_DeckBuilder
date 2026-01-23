@@ -22,7 +22,7 @@ namespace DeckbuilderBackend.Services
         /// </summary>
         public async Task<Deck> CreateDeckAsync(DeckDTO request)
         {
-            Deck deck = new Deck
+            Deck deck = new()
             {
                 Name = request.Name,
                 Description = request.Description ?? string.Empty
@@ -33,7 +33,7 @@ namespace DeckbuilderBackend.Services
         }
 
         /// <summary>
-        /// Gibt alle Decks zurück (ohne Navigationszyklen).
+        /// Gibt alle Decks zurück.
         /// </summary>
         public async Task<List<DeckListItemDto>> GetAllDecksAsync()
         {
@@ -49,7 +49,7 @@ namespace DeckbuilderBackend.Services
         }
 
         /// <summary>
-        /// Gibt paginierte Karten eines Decks zurück (nur DB).
+        /// Gibt paginierte Karten eines Decks zurück.
         /// </summary>
         public async Task<PagedResult<DeckCardListItemDto>?> GetDeckCardsAsync(int deckId, int page = 1, int pageSize = 50)
         {
@@ -114,9 +114,9 @@ namespace DeckbuilderBackend.Services
             int totalCards = deck.DeckCards.Sum(dc => dc.Quantity);
             double totalCmc = deck.DeckCards.Sum(dc => dc.Card.CMC * dc.Quantity);
 
-            Dictionary<string, int> colors = new Dictionary<string, int>();
-            Dictionary<string, int> types = new Dictionary<string, int>();
-            Dictionary<string, int> rarities = new Dictionary<string, int>();
+            Dictionary<string, int> colors = new();
+            Dictionary<string, int> types = new();
+            Dictionary<string, int> rarities = new();
 
             foreach (DeckCard deckCard in deck.DeckCards)
             {

@@ -31,7 +31,6 @@ namespace DeckbuilderBackend.Services
         {
             string query = BuildQuery(name, color, typeLine, rarity, cmc, power, toughness);
 
-            // Scryfall braucht eine nicht-leere Query
             if (string.IsNullOrWhiteSpace(query))
                 throw new ArgumentException("Mindestens ein Suchfilter muss gesetzt sein (z.B. name).");
 
@@ -48,7 +47,6 @@ namespace DeckbuilderBackend.Services
             if (!response.IsSuccessStatusCode)
             {
                 string body = await response.Content.ReadAsStringAsync();
-                // Kurze, hilfreiche Fehlermeldung für Debug/Schule
                 throw new HttpRequestException($"Scryfall Fehler {(int)response.StatusCode}: {response.ReasonPhrase}. URL: {url}. Antwort: {body}");
             }
 
